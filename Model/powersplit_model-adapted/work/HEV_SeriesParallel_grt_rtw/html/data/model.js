@@ -1,0 +1,1 @@
+var modelInfo = {model:"HEV_SeriesParallel"};var modelHierarchy=[{model:"HEV_SeriesParallel",relativePath:"_internal.html",parent:"null"},];var AddCode = true;var ProtectedModel = false;

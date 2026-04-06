@@ -1,0 +1,1 @@
+var PagesHeading = 'Content'; var reportPages = [["Summary","HEV_SeriesParallel_survey.html"],["Subsystem Report","HEV_SeriesParallel_subsystems.html"],["Code Interface Report","HEV_SeriesParallel_interface.html"],["Inserted blocks","HEV_SeriesParallel_intblock.html"]];
