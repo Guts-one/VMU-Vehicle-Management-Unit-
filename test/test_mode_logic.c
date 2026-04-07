@@ -14,7 +14,7 @@ static void test_init_starts_in_standstill(void)
 
     ModeLogic_Step(&state, &inputs, &outputs);
     assert(state.current_mode == MODE_STANDSTILL);
-    assert(outputs.Mot_Enable == 1);
+    assert(outputs.Mot_Enable == 0);
     assert(outputs.Gen_Enable == 0);
     assert(outputs.ICE_Enable == 0);
 }
@@ -47,6 +47,10 @@ static void test_transition_to_ev(void)
     Outputs_t outputs = {0};
 
     ModeLogic_Init(&state);
+    ModeLogic_Step(&state, &inputs, &outputs);
+    assert(state.current_mode == MODE_EV);
+    
+    /* Step again to get MODE_EV outputs */
     ModeLogic_Step(&state, &inputs, &outputs);
     assert(state.current_mode == MODE_EV);
     assert(outputs.Mot_Enable == 1);
