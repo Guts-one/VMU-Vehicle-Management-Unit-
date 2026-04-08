@@ -29,7 +29,7 @@
 typedef enum {
     MODE_STANDSTILL = 0,
     MODE_EV,
-    MODE_REGEN,
+    MODE_REGENB,
     MODE_START,
     MODE_ICE,
     MODE_HYBRID

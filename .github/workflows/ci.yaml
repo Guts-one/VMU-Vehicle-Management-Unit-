@@ -1,0 +1,21 @@
+name: CI
+
+on:
+  pull_request:
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install build tools
+        run: sudo apt-get update && sudo apt-get install -y build-essential
+
+      - name: Build and run mode logic tests
+        run: |
+          gcc -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
+          ./test_mode_logic
