@@ -1,1 +1,0 @@
-var PagesHeading = 'Content'; var reportPages = [["Summary","Mode0_survey.html"],["Subsystem Report","Mode0_subsystems.html"],["Code Interface Report","Mode0_interface.html"]];
