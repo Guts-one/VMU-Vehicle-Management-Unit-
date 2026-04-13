@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Simulação da Mode Logic</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --panel-2: #1f2937;
+      --text: #e5e7eb;
+      --muted: #9ca3af;
+      --accent: #38bdf8;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #111827);
+      color: var(--text);
+    }
+
+    .container {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+
+    h1, h2, h3 {
+      margin-top: 0;
+    }
+
+    .subtitle {
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: rgba(17, 24, 39, 0.95);
+      border: 1px solid #334155;
+      border-radius: 14px;
+      padding: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    }
+
+    .inputs-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.95rem;
+      margin-bottom: 6px;
+      color: #cbd5e1;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid #475569;
+      background: #0b1220;
+      color: var(--text);
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 700;
+      cursor: pointer;
+      background: var(--accent);
+      color: #00111a;
+    }
+
+    button.secondary {
+      background: #334155;
+      color: var(--text);
+    }
+
+    button.warn {
+      background: var(--warn);
+      color: #111827;
+    }
+
+    button.running {
+      background: var(--ok);
+      color: #052e16;
+    }
+
+    .status {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .pill {
+      background: var(--panel-2);
+      border-radius: 10px;
+      padding: 10px;
+    }
+
+    .pill strong {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .mode-badge {
+      display: inline-block;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(34, 197, 94, 0.15);
+      color: #86efac;
+      font-weight: 700;
+      margin-top: 6px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 12px;
+      font-size: 0.92rem;
+    }
+
+    th, td {
+      border-bottom: 1px solid #334155;
+      padding: 8px;
+      text-align: left;
+    }
+
+    th {
+      color: #93c5fd;
+    }
+
+    .note {
+      color: var(--muted);
+      font-size: 0.92rem;
+      line-height: 1.4;
+    }
+
+    .phase-text {
+      margin-top: 8px;
+      color: #bfdbfe;
+      font-size: 0.92rem;
+    }
+
+    .progress {
+      width: 100%;
+      height: 10px;
+      margin-top: 10px;
+      border-radius: 999px;
+      background: #0b1220;
+      overflow: hidden;
+      border: 1px solid #334155;
+    }
+
+    .progress-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #38bdf8, #22c55e);
+      transition: width 0.35s ease;
+    }
+
+    .component-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 12px;
+    }
+
+    .component {
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 12px;
+      transition: all 0.25s ease;
+    }
+
+    .component span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+
+    .component strong {
+      font-size: 0.95rem;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1.1fr 1fr;
+      gap: 16px;
+      align-items: start;
+    }
+
+    .gauge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 12px;
+    }
+
+    .gauge-card {
+      background: radial-gradient(circle at center, rgba(30, 41, 59, 0.95), rgba(2, 6, 23, 0.98) 72%);
+      border: 1px solid #475569;
+      border-radius: 16px;
+      padding: 12px;
+      text-align: center;
+      box-shadow: inset 0 0 24px rgba(15, 23, 42, 0.95), 0 10px 18px rgba(0, 0, 0, 0.28);
+    }
+
+    .gauge-readout {
+      margin-top: 8px;
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .gauge-label {
+      font-size: 0.84rem;
+      color: var(--muted);
+    }
+
+    .component.active {
+      border-color: #22c55e;
+      box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.25) inset;
+      background: rgba(34, 197, 94, 0.12);
+    }
+
+    .component.charge {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+    }
+
+    .component.discharge {
+      border-color: #f59e0b;
+      background: rgba(245, 158, 11, 0.12);
+    }
+
+    .mono {
+      font-family: Consolas, monospace;
+    }
+
+    .chart-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .chart-card {
+      background: #0b1220;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    .chart-card h3 {
+      margin-bottom: 4px;
+      font-size: 1rem;
+    }
+
+    .chart-card p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 180px;
+      margin-top: 8px;
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(11, 18, 32, 0.95));
+      border: 1px solid #1e293b;
+    }
+
+    #speedGauge,
+    #rpmGauge {
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.85) 0%, rgba(2, 6, 23, 0.98) 68%);
+      border: 1px solid #334155;
+    }
+
+    .list {
+      margin: 0;
+      padding-left: 18px;
+      color: #dbeafe;
+    }
+
+    @media (max-width: 700px) {
+      .inputs-grid,
+      .status,
+      .dashboard-grid,
+      .component-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Simulação do `mode_logic.c`</h1>
+    <p class="subtitle">
+      Página standalone que replica a lógica de transição do arquivo <code>src/mode_logic.c</code> em JavaScript.
+    </p>
+
+    <section class="card" style="margin-bottom:16px;">
+      <h2>Painel em tempo real</h2>
+      <p class="note">Os gráficos, o powertrain e os instrumentos abaixo refletem as mudanças de estado em tempo real.</p>
+
+      <div class="dashboard-grid">
+        <div>
+          <div class="gauge-grid">
+            <div class="gauge-card">
+              <h3>Velocímetro</h3>
+              <canvas id="speedGauge" width="220" height="220"></canvas>
+              <div id="speedReadout" class="gauge-readout">0.0 km/h</div>
+              <div class="gauge-label">Entrada `speed`</div>
+            </div>
+            <div class="gauge-card">
+              <h3>Conta-giros</h3>
+              <canvas id="rpmGauge" width="220" height="220"></canvas>
+              <div id="rpmReadout" class="gauge-readout">0 rpm</div>
+              <div class="gauge-label">Rotação `wEng`</div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h3 style="margin-top:0;">Elementos do powertrain</h3>
+          <div class="component-grid">
+            <div id="motorCard" class="component">
+              <span>Motor elétrico</span>
+              <strong id="motorState">Desligado</strong>
+            </div>
+            <div id="generatorCard" class="component">
+              <span>Gerador</span>
+              <strong id="generatorState">Desligado</strong>
+            </div>
+            <div id="iceCard" class="component">
+              <span>Motor a combustão</span>
+              <strong id="iceState">Desligado</strong>
+            </div>
+            <div id="batteryCard" class="component">
+              <span>Bateria</span>
+              <strong id="batteryState">Estável</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Velocidade</h3>
+          <p>`speed` ao longo da simulação</p>
+          <canvas id="speedChart" width="320" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Potência demandada</h3>
+          <p>`P_dem` com aceleração e frenagem regenerativa</p>
+          <canvas id="pdemChart" width="320" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Bateria (SOC)</h3>
+          <p>`SOC` em percentual</p>
+          <canvas id="socChart" width="320" height="180"></canvas>
+        </div>
+        <div class="chart-card">
+          <h3>Linha do modo</h3>
+          <p>Troca entre STANDSTILL, EV, REGEN, START e HYBRID</p>
+          <canvas id="modeChart" width="320" height="180"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Entradas</h2>
+        <div class="inputs-grid">
+          <div>
+            <label for="speed">Velocidade (`speed`)</label>
+            <input id="speed" type="number" value="0" step="0.1" />
+          </div>
+          <div>
+            <label for="pdem">Demanda de potência (`P_dem`)</label>
+            <input id="pdem" type="number" value="0" step="0.1" />
+          </div>
+          <div>
+            <label for="soc">SOC (`SOC`)</label>
+            <input id="soc" type="number" value="0.40" step="0.01" min="0" max="1" />
+          </div>
+          <div>
+            <label for="weng">Velocidade do motor (`wEng`)</label>
+            <input id="weng" type="number" value="0" step="1" />
+          </div>
+        </div>
+
+        <div class="buttons">
+          <button id="initBtn">Inicializar</button>
+          <button id="stepBtn">Executar Step</button>
+          <button id="driveCycleBtn" class="secondary">Rodar ciclo real</button>
+          <button id="minuteCycleBtn" class="secondary">Rodar ciclo real de 1 minuto</button>
+          <button id="evScenarioBtn" class="secondary">Cenário EV</button>
+          <button id="regenScenarioBtn" class="secondary">Cenário Regen</button>
+          <button id="clearBtn" class="warn">Limpar histórico</button>
+        </div>
+
+        <p class="note">
+          Observação: a saída segue o mesmo comportamento do C. Em uma transição, os sinais refletem o modo do passo atual; no passo seguinte eles passam a refletir o novo modo.
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>Estado atual</h2>
+        <div class="pill">
+          <strong>Modo atual</strong>
+          <span id="modeBadge" class="mode-badge">MODE_STANDSTILL</span>
+        </div>
+
+        <div class="status">
+          <div class="pill"><strong>Mot_Enable</strong><span id="motEnable">0</span></div>
+          <div class="pill"><strong>Gen_Enable</strong><span id="genEnable">0</span></div>
+          <div class="pill"><strong>ICE_Enable</strong><span id="iceEnable">0</span></div>
+          <div class="pill"><strong>Passos</strong><span id="stepCount">0</span></div>
+        </div>
+
+        <div class="pill" style="margin-top:12px;">
+          <strong>Fase do ciclo automático</strong>
+          <span id="phaseLabel">Aguardando comando</span>
+          <div id="powerFlow" class="phase-text mono">Sistema parado / pronto para iniciar.</div>
+          <div class="progress">
+            <div id="progressBar" class="progress-bar"></div>
+          </div>
+        </div>
+
+        <h3 style="margin-top:16px;">Limites usados</h3>
+        <ul class="list">
+          <li>`SPEED_STOP = 0.5`</li>
+          <li>`SPEED_REGEN = 5.0`</li>
+          <li>`SPEED_EV_MAX = 35.0`</li>
+          <li>`PDEM_REGEN = -5.0`</li>
+          <li>`PDEM_HYB_IN = 55.0`</li>
+          <li>`SOC_EV_IN = 0.37`</li>
+          <li>`SOC_EV_OUT = 0.35`</li>
+          <li>`SOC_LOW = 0.25`</li>
+          <li>`ENG_ON = 800`</li>
+        </ul>
+      </section>
+    </div>
+
+    <section class="card" style="margin-top:16px;">
+      <h2>Histórico da simulação</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Modo</th>
+            <th>speed</th>
+            <th>P_dem</th>
+            <th>SOC</th>
+            <th>wEng</th>
+            <th>Mot</th>
+            <th>Gen</th>
+            <th>ICE</th>
+          </tr>
+        </thead>
+        <tbody id="historyBody"></tbody>
+      </table>
+    </section>
+  </div>
+
+  <script>
+    const MODE_STANDSTILL = 0;
+    const MODE_EV = 1;
+    const MODE_REGENB = 2;
+    const MODE_START = 3;
+    const MODE_ICE = 4;
+    const MODE_HYBRID = 5;
+
+    const ENG_ON = 800.0;
+    const SPEED_STOP = 0.5;
+    const SPEED_REGEN = 5.0;
+    const SPEED_EV_MAX = 35.0;
+    const PDEM_REGEN = -5.0;
+    const PDEM_STOP_LOW = -1.0;
+    const PDEM_STOP_HIGH = 1.0;
+    const PDEM_HYB_IN = 55.0;
+    const SOC_EV_IN = 0.37;
+    const SOC_EV_OUT = 0.35;
+    const SOC_LOW = 0.25;
+
+    const MODE_NAMES = {
+      [MODE_STANDSTILL]: 'MODE_STANDSTILL',
+      [MODE_EV]: 'MODE_EV',
+      [MODE_REGENB]: 'MODE_REGENB',
+      [MODE_START]: 'MODE_START',
+      [MODE_ICE]: 'MODE_ICE',
+      [MODE_HYBRID]: 'MODE_HYBRID'
+    };
+
+    const MODE_SHORT_NAMES = {
+      [MODE_STANDSTILL]: 'STOP',
+      [MODE_EV]: 'EV',
+      [MODE_REGENB]: 'REGEN',
+      [MODE_START]: 'START',
+      [MODE_ICE]: 'ICE',
+      [MODE_HYBRID]: 'HYB'
+    };
+
+    let driveCycleTimer = null;
+    let driveCycleFrames = [];
+    let driveCycleIndex = 0;
+    let minuteCycleTimer = null;
+    let minuteCycleStartTime = 0;
+
+    const gaugeDisplay = {
+      speed: 0,
+      rpm: 0,
+      animationId: null
+    };
+
+    const sim = {
+      state: { current_mode: MODE_STANDSTILL },
+      outputs: { Mot_Enable: 0, Gen_Enable: 0, ICE_Enable: 0 },
+      stepCounter: 0,
+      lastInput: { speed: 0, P_dem: 0, SOC: 0.40, wEng: 0 },
+      currentPhase: 'Aguardando comando',
+      cycleProgress: 0,
+      telemetry: [],
+
+      init(options = {}) {
+        this.state.current_mode = MODE_STANDSTILL;
+        this.outputs = { Mot_Enable: 0, Gen_Enable: 0, ICE_Enable: 0 };
+        this.stepCounter = 0;
+        this.lastInput = getInputs();
+        this.currentPhase = options.phaseLabel || 'Inicialização manual';
+        this.cycleProgress = options.cycleProgress || 0;
+        this.telemetry = [];
+        addTelemetryPoint(this.lastInput);
+        render();
+        addHistoryRow(this.lastInput);
+      },
+
+      step(input, phaseLabel = 'Execução manual', progress = this.cycleProgress) {
+        const out = { Mot_Enable: 0, Gen_Enable: 0, ICE_Enable: 0 };
+
+        switch (this.state.current_mode) {
+          case MODE_STANDSTILL:
+            if ((input.speed > SPEED_STOP) &&
+                ((input.speed > SPEED_EV_MAX) || (input.SOC < SOC_EV_IN))) {
+              this.state.current_mode = MODE_START;
+            } else if ((input.speed > SPEED_STOP) &&
+                       (input.speed <= SPEED_EV_MAX) &&
+                       (input.SOC >= SOC_EV_IN) &&
+                       (input.P_dem > PDEM_REGEN)) {
+              this.state.current_mode = MODE_EV;
+            }
+
+            out.Mot_Enable = 0;
+            out.Gen_Enable = 0;
+            out.ICE_Enable = 0;
+            break;
+
+          case MODE_EV:
+            if ((input.speed <= SPEED_STOP) &&
+                (input.P_dem < PDEM_STOP_HIGH) &&
+                (input.P_dem > PDEM_STOP_LOW)) {
+              this.state.current_mode = MODE_STANDSTILL;
+            } else if ((input.speed > SPEED_REGEN) &&
+                       (input.P_dem <= PDEM_REGEN)) {
+              this.state.current_mode = MODE_REGENB;
+            } else if ((input.speed > SPEED_EV_MAX) ||
+                       (input.P_dem >= PDEM_HYB_IN) ||
+                       (input.SOC < SOC_EV_OUT)) {
+              this.state.current_mode = MODE_START;
+            }
+
+            out.Mot_Enable = 1;
+            out.Gen_Enable = 0;
+            out.ICE_Enable = 0;
+            break;
+
+          case MODE_REGENB:
+            if (input.speed <= SPEED_STOP) {
+              this.state.current_mode = MODE_STANDSTILL;
+            } else if (((input.speed > SPEED_EV_MAX) && (input.P_dem >= PDEM_STOP_LOW)) ||
+                       (input.P_dem >= PDEM_HYB_IN) ||
+                       (input.SOC < SOC_EV_OUT)) {
+              this.state.current_mode = MODE_START;
+            } else if ((input.P_dem >= PDEM_STOP_LOW) &&
+                       (input.speed > SPEED_STOP) &&
+                       (input.speed <= SPEED_EV_MAX) &&
+                       (input.SOC > SOC_EV_IN)) {
+              this.state.current_mode = MODE_EV;
+            }
+
+            out.Mot_Enable = 1;
+            out.Gen_Enable = 0;
+            out.ICE_Enable = 0;
+            break;
+
+          case MODE_START:
+            if ((input.wEng > ENG_ON) && (input.SOC < SOC_LOW)) {
+              this.state.current_mode = MODE_ICE;
+            } else if ((input.wEng > ENG_ON) &&
+                       ((input.P_dem >= PDEM_HYB_IN) || (input.speed > SPEED_EV_MAX)) &&
+                       (input.SOC >= SOC_LOW)) {
+              this.state.current_mode = MODE_HYBRID;
+            }
+
+            out.Mot_Enable = 1;
+            out.Gen_Enable = 1;
+            out.ICE_Enable = 0;
+            break;
+
+          case MODE_ICE:
+          case MODE_HYBRID:
+          default:
+            break;
+        }
+
+        this.lastInput = { ...input };
+        this.currentPhase = phaseLabel;
+        this.cycleProgress = progress;
+        this.outputs = out;
+        this.stepCounter += 1;
+        addTelemetryPoint(input);
+        render();
+        addHistoryRow(input);
+      }
+    };
+
+    function getInputs() {
+      return {
+        speed: Number(document.getElementById('speed').value),
+        P_dem: Number(document.getElementById('pdem').value),
+        SOC: Number(document.getElementById('soc').value),
+        wEng: Number(document.getElementById('weng').value)
+      };
+    }
+
+    function setInputFields(values) {
+      document.getElementById('speed').value = values.speed;
+      document.getElementById('pdem').value = values.P_dem;
+      document.getElementById('soc').value = values.SOC;
+      document.getElementById('weng').value = values.wEng;
+    }
+
+    function interpolate(from, to, ratio) {
+      return from + (to - from) * ratio;
+    }
+
+    function easeInOutSine(value) {
+      return -(Math.cos(Math.PI * value) - 1) / 2;
+    }
+
+    function buildMinuteCycleSegments() {
+      return [
+        { start: 0, end: 5, label: '0-5s | Saída suave em modo elétrico', from: { speed: 0, P_dem: 4, SOC: 0.62, wEng: 0 }, to: { speed: 30, P_dem: 20, SOC: 0.60, wEng: 0 } },
+        { start: 5, end: 10, label: '5-10s | Aceleração forte até 80 km/h', from: { speed: 30, P_dem: 20, SOC: 0.60, wEng: 0 }, to: { speed: 80, P_dem: 68, SOC: 0.56, wEng: 500 } },
+        { start: 10, end: 15, label: '10-15s | Subida final até 120 km/h', from: { speed: 80, P_dem: 60, SOC: 0.56, wEng: 500 }, to: { speed: 120, P_dem: 55, SOC: 0.52, wEng: 950 } },
+        { start: 15, end: 20, label: '15-20s | Desaceleração até 30 km/h', from: { speed: 120, P_dem: -4, SOC: 0.52, wEng: 950 }, to: { speed: 30, P_dem: -18, SOC: 0.55, wEng: 250 } },
+        { start: 20, end: 28, label: '20-28s | Nova aceleração até 100 km/h', from: { speed: 30, P_dem: 14, SOC: 0.55, wEng: 250 }, to: { speed: 100, P_dem: 58, SOC: 0.51, wEng: 820 } },
+        { start: 28, end: 33, label: '28-33s | Aumento até 120 km/h', from: { speed: 100, P_dem: 42, SOC: 0.51, wEng: 820 }, to: { speed: 120, P_dem: 52, SOC: 0.49, wEng: 1120 } },
+        { start: 33, end: 38, label: '33-38s | Redução suave até 60 km/h', from: { speed: 120, P_dem: -6, SOC: 0.49, wEng: 1120 }, to: { speed: 60, P_dem: -12, SOC: 0.51, wEng: 640 } },
+        { start: 38, end: 46, label: '38-46s | Retomada até 100 km/h', from: { speed: 60, P_dem: 20, SOC: 0.51, wEng: 640 }, to: { speed: 100, P_dem: 50, SOC: 0.48, wEng: 980 } },
+        { start: 46, end: 50, label: '46-50s | Pico rápido em 120 km/h', from: { speed: 100, P_dem: 44, SOC: 0.48, wEng: 980 }, to: { speed: 120, P_dem: 55, SOC: 0.46, wEng: 1250 } },
+        { start: 50, end: 55, label: '50-55s | Tráfego mais lento até 40 km/h', from: { speed: 120, P_dem: -5, SOC: 0.46, wEng: 1250 }, to: { speed: 40, P_dem: -14, SOC: 0.48, wEng: 350 } },
+        { start: 55, end: 60, label: '55-60s | Fechamento com retomada leve', from: { speed: 40, P_dem: 8, SOC: 0.48, wEng: 350 }, to: { speed: 70, P_dem: 30, SOC: 0.45, wEng: 900 } }
+      ];
+    }
+
+    function getMinuteCycleFrame(elapsedSeconds) {
+      const segments = buildMinuteCycleSegments();
+      const segment = segments.find((item) => elapsedSeconds >= item.start && elapsedSeconds < item.end) || segments[segments.length - 1];
+      const localRatio = Math.max(0, Math.min(1, (elapsedSeconds - segment.start) / Math.max(0.001, segment.end - segment.start)));
+      const eased = easeInOutSine(localRatio);
+
+      return {
+        label: `${segment.label} | ${elapsedSeconds.toFixed(1)}s / 60s`,
+        speed: interpolate(segment.from.speed, segment.to.speed, eased),
+        P_dem: interpolate(segment.from.P_dem, segment.to.P_dem, eased),
+        SOC: interpolate(segment.from.SOC, segment.to.SOC, eased),
+        wEng: interpolate(segment.from.wEng, segment.to.wEng, eased)
+      };
+    }
+
+    function addTelemetryPoint(input) {
+      sim.telemetry.push({
+        step: sim.stepCounter,
+        speed: input.speed,
+        P_dem: input.P_dem,
+        SOC: input.SOC * 100,
+        mode: sim.state.current_mode
+      });
+
+      if (sim.telemetry.length > 80) {
+        sim.telemetry.shift();
+      }
+    }
+
+    function getCanvasContext(canvasId, preferredHeight = 180) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) {
+        return null;
+      }
+
+      const targetWidth = Math.max(220, Math.floor(canvas.getBoundingClientRect().width || canvas.width || 320));
+      const targetHeight = preferredHeight;
+      if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+      }
+
+      return canvas.getContext('2d');
+    }
+
+    function drawGauge(canvasId, value, min, max, label, unit, zones = []) {
+      const ctx = getCanvasContext(canvasId, 220);
+      if (!ctx) {
+        return;
+      }
+
+      const { width, height } = ctx.canvas;
+      const cx = width / 2;
+      const cy = height * 0.78;
+      const radius = Math.min(width * 0.36, height * 0.52);
+      const startAngle = Math.PI * 0.75;
+      const endAngle = Math.PI * 2.25;
+
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = '#1e293b';
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, startAngle, endAngle);
+      ctx.stroke();
+
+      zones.forEach((zone) => {
+        const zoneStart = startAngle + ((zone.from - min) / (max - min)) * (endAngle - startAngle);
+        const zoneEnd = startAngle + ((zone.to - min) / (max - min)) * (endAngle - startAngle);
+        ctx.strokeStyle = zone.color;
+        ctx.beginPath();
+        ctx.arc(cx, cy, radius, zoneStart, zoneEnd);
+        ctx.stroke();
+      });
+
+      for (let i = 0; i <= 6; i += 1) {
+        const ratio = i / 6;
+        const angle = startAngle + ratio * (endAngle - startAngle);
+        const inner = radius - 18;
+        const outer = radius + 2;
+        const x1 = cx + Math.cos(angle) * inner;
+        const y1 = cy + Math.sin(angle) * inner;
+        const x2 = cx + Math.cos(angle) * outer;
+        const y2 = cy + Math.sin(angle) * outer;
+
+        ctx.strokeStyle = '#94a3b8';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        const tickValue = min + ratio * (max - min);
+        const tx = cx + Math.cos(angle) * (radius - 34);
+        const ty = cy + Math.sin(angle) * (radius - 34);
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '10px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${Math.round(tickValue)}`, tx, ty + 3);
+      }
+
+      const clamped = Math.max(min, Math.min(max, value));
+      const valueAngle = startAngle + ((clamped - min) / (max - min)) * (endAngle - startAngle);
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate(valueAngle);
+      ctx.strokeStyle = '#f8fafc';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(-10, 0);
+      ctx.lineTo(radius - 18, 0);
+      ctx.stroke();
+      ctx.restore();
+
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(cx, cy, 6, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = 'bold 13px Arial';
+      ctx.textAlign = 'center';
+      ctx.fillText(label, cx, 22);
+      ctx.font = 'bold 18px Arial';
+      ctx.fillText(`${value.toFixed(unit === 'rpm' ? 0 : 1)} ${unit}`, cx, cy - 18);
+    }
+
+    function renderGauges(speedValue = sim.lastInput.speed || 0, rpmValue = sim.lastInput.wEng || 0) {
+      drawGauge('speedGauge', speedValue, 0, 120, 'Velocidade', 'km/h', [
+        { from: 0, to: 40, color: '#22c55e' },
+        { from: 40, to: 80, color: '#38bdf8' },
+        { from: 80, to: 120, color: '#f59e0b' }
+      ]);
+
+      drawGauge('rpmGauge', rpmValue, 0, 2500, 'Rotação', 'rpm', [
+        { from: 0, to: 1200, color: '#22c55e' },
+        { from: 1200, to: 1900, color: '#38bdf8' },
+        { from: 1900, to: 2500, color: '#ef4444' }
+      ]);
+
+      document.getElementById('speedReadout').textContent = `${speedValue.toFixed(1)} km/h`;
+      document.getElementById('rpmReadout').textContent = `${rpmValue.toFixed(0)} rpm`;
+    }
+
+    function animateGauges() {
+      const speedTarget = sim.lastInput.speed || 0;
+      const rpmTarget = sim.lastInput.wEng || 0;
+
+      gaugeDisplay.speed += (speedTarget - gaugeDisplay.speed) * 0.14;
+      gaugeDisplay.rpm += (rpmTarget - gaugeDisplay.rpm) * 0.12;
+
+      renderGauges(gaugeDisplay.speed, gaugeDisplay.rpm);
+
+      const speedDiff = Math.abs(speedTarget - gaugeDisplay.speed);
+      const rpmDiff = Math.abs(rpmTarget - gaugeDisplay.rpm);
+
+      if (driveCycleTimer || minuteCycleTimer || speedDiff > 0.15 || rpmDiff > 1.5) {
+        gaugeDisplay.animationId = requestAnimationFrame(animateGauges);
+      } else {
+        gaugeDisplay.speed = speedTarget;
+        gaugeDisplay.rpm = rpmTarget;
+        renderGauges(gaugeDisplay.speed, gaugeDisplay.rpm);
+        gaugeDisplay.animationId = null;
+      }
+    }
+
+    function ensureGaugeAnimation() {
+      if (gaugeDisplay.animationId === null) {
+        gaugeDisplay.animationId = requestAnimationFrame(animateGauges);
+      }
+    }
+
+    function drawLineChart(canvasId, values, color, options = {}) {
+      const ctx = getCanvasContext(canvasId);
+      if (!ctx) {
+        return;
+      }
+
+      const width = ctx.canvas.width;
+      const height = ctx.canvas.height;
+      const padding = { top: 16, right: 12, bottom: 22, left: 36 };
+      ctx.clearRect(0, 0, width, height);
+
+      ctx.strokeStyle = '#243244';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i += 1) {
+        const y = padding.top + ((height - padding.top - padding.bottom) / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+      }
+
+      if (!values.length) {
+        return;
+      }
+
+      let min = options.min ?? Math.min(...values);
+      let max = options.max ?? Math.max(...values);
+
+      if (min === max) {
+        min -= 1;
+        max += 1;
+      }
+
+      const range = max - min;
+      const plotWidth = width - padding.left - padding.right;
+      const plotHeight = height - padding.top - padding.bottom;
+
+      if (options.zeroLine && min < 0 && max > 0) {
+        const zeroY = padding.top + plotHeight - ((0 - min) / range) * plotHeight;
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.85)';
+        ctx.beginPath();
+        ctx.moveTo(padding.left, zeroY);
+        ctx.lineTo(width - padding.right, zeroY);
+        ctx.stroke();
+      }
+
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+
+      values.forEach((value, index) => {
+        const x = padding.left + (values.length === 1 ? 0 : (index / (values.length - 1)) * plotWidth);
+        const y = padding.top + plotHeight - ((value - min) / range) * plotHeight;
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+
+      const lastValue = values[values.length - 1];
+      const lastX = padding.left + (values.length === 1 ? 0 : plotWidth);
+      const lastY = padding.top + plotHeight - ((lastValue - min) / range) * plotHeight;
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.arc(lastX, lastY, 3.5, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#cbd5e1';
+      ctx.font = '11px Arial';
+      ctx.fillText(`${max.toFixed(1)}`, 6, padding.top + 4);
+      ctx.fillText(`${min.toFixed(1)}`, 6, height - padding.bottom + 4);
+      ctx.fillText(`t=${sim.stepCounter}`, width - 46, height - 6);
+    }
+
+    function drawModeChart() {
+      const ctx = getCanvasContext('modeChart');
+      if (!ctx) {
+        return;
+      }
+
+      const width = ctx.canvas.width;
+      const height = ctx.canvas.height;
+      const padding = { top: 10, right: 12, bottom: 22, left: 48 };
+      ctx.clearRect(0, 0, width, height);
+
+      const values = sim.telemetry.map((point) => point.mode);
+      const plotWidth = width - padding.left - padding.right;
+      const plotHeight = height - padding.top - padding.bottom;
+
+      for (let mode = MODE_STANDSTILL; mode <= MODE_HYBRID; mode += 1) {
+        const y = padding.top + plotHeight - (mode / MODE_HYBRID) * plotHeight;
+        ctx.strokeStyle = '#243244';
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(width - padding.right, y);
+        ctx.stroke();
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '10px Arial';
+        ctx.fillText(MODE_SHORT_NAMES[mode], 6, y + 3);
+      }
+
+      if (!values.length) {
+        return;
+      }
+
+      ctx.strokeStyle = '#a78bfa';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+
+      values.forEach((value, index) => {
+        const x = padding.left + (values.length === 1 ? 0 : (index / (values.length - 1)) * plotWidth);
+        const y = padding.top + plotHeight - (value / MODE_HYBRID) * plotHeight;
+        if (index === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      });
+      ctx.stroke();
+    }
+
+    function renderCharts() {
+      drawLineChart('speedChart', sim.telemetry.map((point) => point.speed), '#38bdf8', { min: 0 });
+      drawLineChart('pdemChart', sim.telemetry.map((point) => point.P_dem), '#f59e0b', { zeroLine: true });
+      drawLineChart('socChart', sim.telemetry.map((point) => point.SOC), '#22c55e', { min: 0, max: 100 });
+      drawModeChart();
+    }
+
+    window.addEventListener('resize', () => {
+      renderGauges();
+      renderCharts();
+    });
+
+    function setComponentState(cardId, stateId, active, activeText, inactiveText) {
+      const card = document.getElementById(cardId);
+      const state = document.getElementById(stateId);
+      card.className = 'component';
+      if (active) {
+        card.classList.add('active');
+      }
+      state.textContent = active ? activeText : inactiveText;
+    }
+
+    function updateOperationalPanel(input) {
+      const motorActive = sim.outputs.Mot_Enable === 1 || [MODE_EV, MODE_REGENB, MODE_START, MODE_HYBRID].includes(sim.state.current_mode);
+      const generatorActive = sim.outputs.Gen_Enable === 1 || sim.state.current_mode === MODE_START;
+      const iceActive = input.wEng > ENG_ON || sim.state.current_mode === MODE_ICE || sim.state.current_mode === MODE_HYBRID;
+
+      setComponentState('motorCard', 'motorState', motorActive, 'Ativo', 'Desligado');
+      setComponentState('generatorCard', 'generatorState', generatorActive, 'Ativo', 'Desligado');
+      setComponentState('iceCard', 'iceState', iceActive, 'Ativo', 'Desligado');
+
+      const batteryCard = document.getElementById('batteryCard');
+      const batteryState = document.getElementById('batteryState');
+      batteryCard.className = 'component';
+
+      if (input.P_dem <= PDEM_REGEN) {
+        batteryCard.classList.add('charge', 'active');
+        batteryState.textContent = 'Carregando (regen)';
+      } else if (input.P_dem > PDEM_STOP_HIGH) {
+        batteryCard.classList.add('discharge', 'active');
+        batteryState.textContent = 'Descarregando';
+      } else {
+        batteryState.textContent = 'Estável';
+      }
+
+      let flowText = 'Sistema parado / pronto para iniciar.';
+      if (sim.state.current_mode === MODE_EV) {
+        flowText = 'Fluxo: bateria -> motor elétrico -> rodas';
+      } else if (sim.state.current_mode === MODE_REGENB) {
+        flowText = 'Fluxo: rodas -> motor elétrico -> bateria (frenagem regenerativa)';
+      } else if (sim.state.current_mode === MODE_START) {
+        flowText = 'Fluxo: gerador auxilia a partida e o motor elétrico sustenta a tração';
+      } else if (sim.state.current_mode === MODE_HYBRID) {
+        flowText = 'Fluxo: motor térmico + motor elétrico -> rodas';
+      } else if (sim.state.current_mode === MODE_ICE) {
+        flowText = 'Fluxo: motor térmico -> rodas';
+      }
+
+      document.getElementById('powerFlow').textContent = flowText;
+    }
+
+    function render() {
+      document.getElementById('modeBadge').textContent = MODE_NAMES[sim.state.current_mode];
+      document.getElementById('motEnable').textContent = sim.outputs.Mot_Enable;
+      document.getElementById('genEnable').textContent = sim.outputs.Gen_Enable;
+      document.getElementById('iceEnable').textContent = sim.outputs.ICE_Enable;
+      document.getElementById('stepCount').textContent = sim.stepCounter;
+      document.getElementById('phaseLabel').textContent = sim.currentPhase;
+      document.getElementById('progressBar').style.width = `${Math.max(0, Math.min(100, sim.cycleProgress))}%`;
+      updateOperationalPanel(sim.lastInput);
+      ensureGaugeAnimation();
+      renderCharts();
+    }
+
+    function addHistoryRow(input) {
+      const tbody = document.getElementById('historyBody');
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${sim.stepCounter}</td>
+        <td>${MODE_NAMES[sim.state.current_mode]}</td>
+        <td>${input.speed.toFixed(2)}</td>
+        <td>${input.P_dem.toFixed(2)}</td>
+        <td>${input.SOC.toFixed(2)}</td>
+        <td>${input.wEng.toFixed(0)}</td>
+        <td>${sim.outputs.Mot_Enable}</td>
+        <td>${sim.outputs.Gen_Enable}</td>
+        <td>${sim.outputs.ICE_Enable}</td>
+      `;
+      tbody.prepend(row);
+      while (tbody.children.length > 140) {
+        tbody.removeChild(tbody.lastChild);
+      }
+    }
+
+    function applyScenario(values, label = 'Cenário manual') {
+      stopDriveCycle(false);
+      setInputFields(values);
+      sim.step(getInputs(), label, sim.cycleProgress);
+    }
+
+    function buildDriveCycle() {
+      return [
+        { label: 'Veículo parado / pronto para arrancar', speed: 0, P_dem: 0, SOC: 0.58, wEng: 0 },
+        { label: 'Saída suave em modo elétrico', speed: 8, P_dem: 10, SOC: 0.57, wEng: 0 },
+        { label: 'Aceleração elétrica no trânsito', speed: 18, P_dem: 18, SOC: 0.56, wEng: 0 },
+        { label: 'Cruzeiro urbano estável', speed: 28, P_dem: 12, SOC: 0.54, wEng: 0 },
+        { label: 'Alívio do acelerador', speed: 20, P_dem: 1, SOC: 0.54, wEng: 0 },
+        { label: 'Frenagem regenerativa', speed: 18, P_dem: -8, SOC: 0.55, wEng: 0 },
+        { label: 'Redução forte de velocidade', speed: 6, P_dem: -10, SOC: 0.56, wEng: 0 },
+        { label: 'Retomada após a frenagem', speed: 22, P_dem: 15, SOC: 0.55, wEng: 0 },
+        { label: 'Demanda alta / ultrapassagem', speed: 37, P_dem: 70, SOC: 0.52, wEng: 0 },
+        { label: 'Partida do motor térmico', speed: 42, P_dem: 68, SOC: 0.50, wEng: 900 },
+        { label: 'Cruzeiro híbrido em rodovia', speed: 50, P_dem: 45, SOC: 0.49, wEng: 1100 },
+        { label: 'Encerrando demonstração', speed: 48, P_dem: 20, SOC: 0.49, wEng: 950 }
+      ];
+    }
+
+    function resetCycleButtons() {
+      const shortButton = document.getElementById('driveCycleBtn');
+      const minuteButton = document.getElementById('minuteCycleBtn');
+
+      shortButton.textContent = 'Rodar ciclo real';
+      minuteButton.textContent = 'Rodar ciclo real de 1 minuto';
+      shortButton.classList.remove('running');
+      minuteButton.classList.remove('running');
+    }
+
+    function setRunningButton(buttonId, runningText) {
+      resetCycleButtons();
+      const button = document.getElementById(buttonId);
+      button.textContent = runningText;
+      button.classList.add('running');
+    }
+
+    function stopDriveCycle(updatePhase = true) {
+      if (driveCycleTimer) {
+        clearInterval(driveCycleTimer);
+        driveCycleTimer = null;
+      }
+      if (minuteCycleTimer) {
+        clearInterval(minuteCycleTimer);
+        minuteCycleTimer = null;
+      }
+      resetCycleButtons();
+      if (updatePhase) {
+        sim.currentPhase = 'Ciclo automático pausado';
+        render();
+      }
+    }
+
+    function runDriveCycleFrame() {
+      if (driveCycleIndex >= driveCycleFrames.length) {
+        stopDriveCycle(false);
+        sim.currentPhase = 'Demonstração concluída';
+        sim.cycleProgress = 100;
+        render();
+        return;
+      }
+
+      const frame = driveCycleFrames[driveCycleIndex];
+      const progress = ((driveCycleIndex + 1) / driveCycleFrames.length) * 100;
+      setInputFields(frame);
+      sim.step(frame, frame.label, progress.toFixed(0));
+      driveCycleIndex += 1;
+    }
+
+    function runMinuteCycleFrame() {
+      const elapsedMs = Date.now() - minuteCycleStartTime;
+      const elapsedSeconds = Math.min(60, elapsedMs / 1000);
+      const frame = getMinuteCycleFrame(elapsedSeconds);
+      const progress = Math.min(100, (elapsedMs / 60000) * 100);
+
+      setInputFields(frame);
+      sim.step(frame, frame.label, progress);
+
+      if (elapsedMs >= 60000) {
+        stopDriveCycle(false);
+        sim.currentPhase = 'Ciclo real de 1 minuto concluído';
+        sim.cycleProgress = 100;
+        render();
+      }
+    }
+
+    function toggleDriveCycle() {
+      if (driveCycleTimer) {
+        stopDriveCycle();
+        return;
+      }
+
+      stopDriveCycle(false);
+      document.getElementById('historyBody').innerHTML = '';
+      driveCycleFrames = buildDriveCycle();
+      driveCycleIndex = 0;
+      setInputFields(driveCycleFrames[0]);
+      sim.init({ phaseLabel: 'Ciclo automático iniciado', cycleProgress: 0 });
+      setRunningButton('driveCycleBtn', 'Parar ciclo real');
+      runDriveCycleFrame();
+      driveCycleTimer = setInterval(runDriveCycleFrame, 900);
+    }
+
+    function toggleMinuteCycle() {
+      if (minuteCycleTimer) {
+        stopDriveCycle();
+        return;
+      }
+
+      stopDriveCycle(false);
+      document.getElementById('historyBody').innerHTML = '';
+      const initialFrame = getMinuteCycleFrame(0);
+      setInputFields(initialFrame);
+      sim.init({ phaseLabel: 'Ciclo real de 1 minuto iniciado', cycleProgress: 0 });
+      setRunningButton('minuteCycleBtn', 'Parar ciclo de 1 minuto');
+      minuteCycleStartTime = Date.now();
+      runMinuteCycleFrame();
+      minuteCycleTimer = setInterval(runMinuteCycleFrame, 120);
+    }
+
+    document.getElementById('initBtn').addEventListener('click', () => {
+      stopDriveCycle(false);
+      sim.init();
+    });
+    document.getElementById('stepBtn').addEventListener('click', () => {
+      stopDriveCycle(false);
+      sim.step(getInputs());
+    });
+    document.getElementById('driveCycleBtn').addEventListener('click', toggleDriveCycle);
+    document.getElementById('minuteCycleBtn').addEventListener('click', toggleMinuteCycle);
+    document.getElementById('evScenarioBtn').addEventListener('click', () => {
+      applyScenario({ speed: 20, P_dem: 0, SOC: 0.40, wEng: 0 }, 'Cenário EV');
+    });
+    document.getElementById('regenScenarioBtn').addEventListener('click', () => {
+      applyScenario({ speed: 10, P_dem: -5.5, SOC: 0.40, wEng: 0 }, 'Cenário Regen');
+    });
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      stopDriveCycle(false);
+      document.getElementById('historyBody').innerHTML = '';
+      sim.init();
+    });
+
+    window.modeLogicSim = sim;
+    window.toggleDriveCycle = toggleDriveCycle;
+    sim.init();
+  </script>
+</body>
+</html>
