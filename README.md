@@ -71,7 +71,7 @@ This implementation defines:
 - step-based state machine behavior
 - output enable mapping for motor, generator, and ICE
 
-### Team-Oriented Mode Logic Structure + adaptation for improved simulink model #36
+### Team-Oriented Mode Logic Structure + adaptation for improved simulink model - issue: #36
 
 A modular team-oriented version is also included in:
 
