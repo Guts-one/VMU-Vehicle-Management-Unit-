@@ -66,8 +66,8 @@ Os valores abaixo batem com `mode_logic_team.h`.
 Prioridade de avaliacao:
 
 1. `StandStill -> EV_mode`
-   - Guarda do modelo: `[speed>0.5 && speed<=35 && charge>=0.37 && P_dem>-5]`
-   - Equivalente no C: `speed > SPEED_STOP && speed <= SPEED_EV_MAX && SOC >= SOC_EV_IN && P_dem > PDEM_REGEN`
+   - Guarda do modelo: `[speed>0.5 && speed<=35 && charge>=0.37]`
+   - Equivalente no C: `speed > SPEED_STOP && speed <= SPEED_EV_MAX && SOC >= SOC_EV_IN`
 
 2. `StandStill -> Motion_mode_ICE`
    - Guarda do modelo: `[speed>0.5 && (speed>35 || charge<0.37)]`
@@ -86,24 +86,24 @@ Prioridade de avaliacao:
    - Equivalente no C: `speed > SPEED_EV_MAX || P_dem >= PDEM_HYB_IN || SOC < SOC_EV_OUT`
 
 3. `EV_mode -> StandStill`
-   - Guarda do modelo: `[speed<=0.5 && P_dem<1 && P_dem>-1]`
-   - Equivalente no C: `speed <= SPEED_STOP && P_dem < PDEM_STOP_HIGH && P_dem > PDEM_STOP_LOW`
+   - Guarda do modelo: `[speed<=0.5 && P_dem<=1 && P_dem>=-1]`
+   - Equivalente no C: `speed <= SPEED_STOP && P_dem <= PDEM_STOP_HIGH && P_dem >= PDEM_STOP_LOW`
 
 ### Saídas de `RegenB_mode`
 
 Prioridade de avaliação:
 
 1. `RegenB_mode -> Motion_mode_ICE`
-   - Guarda do modelo: `[ ((speed>35) && (P_dem>=-1)) || P_dem>=50 || charge<0.35 ]`
-   - Equivalente no C: `((speed > SPEED_EV_MAX) && (P_dem >= PDEM_STOP_LOW)) || (P_dem >= PDEM_HYB_IN) || (SOC < SOC_EV_OUT)`
+   - Guarda do modelo: `[ ((speed>35) && (P_dem>=-1)) || charge<0.35 ]`
+   - Equivalente no C: `((speed > SPEED_EV_MAX) && (P_dem >= PDEM_STOP_LOW)) || (SOC < SOC_EV_OUT)`
 
 2. `RegenB_mode -> StandStill`
-   - Guarda do modelo: `[speed<=0.5]`
-   - Equivalente no C: `speed <= SPEED_STOP`
+   - Guarda do modelo: `[speed<=0.5 && P_dem<=1 && P_dem>=-1]`
+   - Equivalente no C: `speed <= SPEED_STOP && P_dem <= PDEM_STOP_HIGH && P_dem >= PDEM_STOP_LOW`
 
 3. `RegenB_mode -> EV_mode`
-   - Guarda do modelo: `[P_dem>=-1 && speed>0.5 && speed<=35 && charge>0.37]`
-   - Equivalente no C: `P_dem >= PDEM_STOP_LOW && speed > SPEED_STOP && speed <= SPEED_EV_MAX && SOC > SOC_EV_IN`
+   - Guarda do modelo: `[P_dem>=-1 && speed>0.5 && speed<=35 && charge>=0.35]`
+   - Equivalente no C: `P_dem >= PDEM_STOP_LOW && speed > SPEED_STOP && speed <= SPEED_EV_MAX && SOC >= SOC_EV_OUT`
 
 ### Saidas de `Motion_mode_ICE` para estados externos
 
@@ -114,12 +114,12 @@ Prioridade de avaliacao:
    - Equivalente no C: `wEng > ENG_ON && speed > SPEED_REGEN && P_dem <= PDEM_REGEN`
 
 2. `Motion_mode_ICE -> EV_mode`
-   - Guarda do modelo: `[engine_speed>EngOnRPM && P_dem<=40 && P_dem>=-1 && speed>0.5 && speed<=35 && charge>0.37]`
-   - Equivalente no C: `wEng > ENG_ON && P_dem <= PDEM_HYB_OUT && P_dem >= PDEM_STOP_LOW && speed > SPEED_STOP && speed <= SPEED_EV_MAX && SOC > SOC_EV_IN`
+   - Guarda do modelo: `[engine_speed>EngOnRPM && P_dem<=40 && P_dem>=-1 && speed>0.5 && speed<=35 && charge>=0.37]`
+   - Equivalente no C: `wEng > ENG_ON && P_dem <= PDEM_HYB_OUT && P_dem >= PDEM_STOP_LOW && speed > SPEED_STOP && speed <= SPEED_EV_MAX && SOC >= SOC_EV_IN`
 
 3. `Motion_mode_ICE -> StandStill`
-   - Guarda do modelo: `[speed<=0.5 && P_dem<1 && P_dem>-1]`
-   - Equivalente no C: `speed <= SPEED_STOP && P_dem < PDEM_STOP_HIGH && P_dem > PDEM_STOP_LOW`
+   - Guarda do modelo: `[speed<=0.5 && P_dem<=1 && P_dem>=-1]`
+   - Equivalente no C: `speed <= SPEED_STOP && P_dem <= PDEM_STOP_HIGH && P_dem >= PDEM_STOP_LOW`
 
 ## Transições internas de `Motion_mode_ICE`
 
