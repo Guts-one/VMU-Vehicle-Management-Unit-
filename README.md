@@ -148,6 +148,87 @@ This repository currently serves as:
 - a workspace for evolving the team-oriented mode logic structure
 - a traceable reference for future integration and validation work
 
+## Code Quality & Standards
+
+### MISRA C 2012 Compliance
+
+This project follows **MISRA C 2012** coding standards to ensure reliability and safety.
+
+**Status:**
+- ✓ Minimum: 0 high-level violations
+- ✓ Desirable: 0 high + 0 medium violations
+- Goal: Zero violations
+
+**Key Guidelines:**
+- `const` for input parameters (Rule 8.13)
+- Unsigned integer suffixes (Rule 10.1)
+- Explicit type declarations (Rule 10)
+- Structured control flow (Rules 15, 16)
+- Static scope for internal functions (Rule 8.7)
+
+**Quick Start:**
+- See [MISRA_QUICKSTART.md](MISRA_QUICKSTART.md) for developer guidelines
+- See [MISRA_COMPLIANCE.md](MISRA_COMPLIANCE.md) for detailed rules and patterns
+
+**Automated Verification:**
+
+GitHub Actions runs MISRA C 2012 static analysis on every pull request using **cppcheck**.
+
+**Running Locally:**
+
+1. **Install cppcheck:**
+   ```bash
+   # Windows
+   winget install Cppcheck.Cppcheck
+
+   # macOS
+   brew install cppcheck
+
+   # Linux (Ubuntu/Debian)
+   sudo apt-get install cppcheck
+   ```
+
+2. **Run static analysis:**
+   ```bash
+   cppcheck --enable=all --suppress=missingIncludeSystem -Iinc src/ inc/ test/
+   ```
+
+3. **Build with strict warnings:**
+   ```bash
+   gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
+   ```
+
+4. **Run tests:**
+   ```bash
+   # Linux/macOS
+   ./test_mode_logic
+
+   # Windows
+   .\test_mode_logic.exe
+   ```
+
+**Complete Local Verification (All Steps):**
+```bash
+# 1. Static analysis
+cppcheck --enable=all --suppress=missingIncludeSystem -Iinc src/ inc/ test/
+
+# 2. Compile
+gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
+
+# 3. Test
+./test_mode_logic
+```
+
+### Continuous Integration
+
+GitHub Actions workflow (`.github/workflows/ci.yaml`):
+1. **Static Analysis** - Checks for MISRA C 2012 violations
+2. **Build and Test** - Compiles with strict flags and runs unit tests
+
+View results:
+- Pull requests show status under "Checks"
+- Download analysis reports from workflow artifacts
+
 ## Notes
 
 - `mode_logic.c` is the implementation currently covered by the test and CI pipeline.
