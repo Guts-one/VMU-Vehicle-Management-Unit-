@@ -37,41 +37,88 @@
 /* Helpers internos de transicao. */
 
 /* [PESSOA A] STANDSTILL
- * Preencher as duas saidas deste estado:
- *   - STANDSTILL -> EV
- *   - STANDSTILL -> START
+ * Transitions:
+ *   STANDSTILL -> EV     : Moving vehicle, inside EV's mode range
+ *                          and SOC is enough for EV.
+ *   STANDSTILL -> START  : Moving vehicle but way too fast for EV
+ *                          or SOC is not enough.
  *
- * Pode seguir este formato:
- *   if (cond_ev) {
- *       next = MODE_EV;
- *   } else if (cond_start) {
- *       next = MODE_START;
- *   } else {
- *       // permanece em STANDSTILL
- *   }
+ * Priority: EV before START (EV mode is the main target).
+ *
+ * Hotfix applied:
+ *   - Removed the P_dem > PDEM_REGEN guard from STANDSTILL -> EV
+ *     (overly restrictive for some edge cases in the model).
+ *   - SOC comparison now uses >= to match the updated model spec.
+ *   - START branch uses strict < on SOC so both branches stay
+ *     mutually exclusive at the SOC_EV_IN boundary.
  */
 static Mode_t handle_standstill(const Inputs_t *in)
 {
     Mode_t next = MODE_STANDSTILL;
 
-    /* TODO PESSOA A: escrever as condicoes aqui. */
-    (void)in;
+    /* STANDSTILL -> EV */
+    if ((in->speed >  SPEED_STOP)   &&
+        (in->speed <= SPEED_EV_MAX) &&
+        (in->SOC   >= SOC_EV_IN)) {
+        next = MODE_EV;
+    }
+    /* STANDSTILL -> START */
+    else if ((in->speed > SPEED_STOP) &&
+             ((in->speed > SPEED_EV_MAX) ||
+              (in->SOC   <  SOC_EV_IN))) {
+        next = MODE_START;
+    }
+    else {
+        /* stays in STANDSTILL */
+    }
 
     return next;
 }
 
 /* [PESSOA B] EV
- * Transicoes esperadas:
- *   - EV -> STANDSTILL
- *   - EV -> REGENB
- *   - EV -> START
+ * Transitions (priority order):
+ *   1. EV -> REGENB     : speed above regen threshold and
+ *                         power demand entered regen range.
+ *   2. EV -> START      : speed too high for EV, or power demand
+ *                         requires hybrid, or SOC dropped below
+ *                         EV sustain threshold (hysteresis exit).
+ *   3. EV -> STANDSTILL : vehicle stopped and demand inside the
+ *                         neutral stop band.
+ *
+ * Hysteresis note:
+ *   EV entry uses SOC_EV_IN (0.37) in handle_standstill;
+ *   EV exit uses SOC_EV_OUT (0.35) here. The gap between the
+ *   two thresholds is what prevents chattering in and out of EV.
+ *
+ * Hotfix applied:
+ *   - EV -> STANDSTILL: P_dem band is now inclusive on both sides
+ *     (<= PDEM_STOP_HIGH and >= PDEM_STOP_LOW) to match the
+ *     updated model. The other two transitions are unchanged.
  */
 static Mode_t handle_ev(const Inputs_t *in)
 {
     Mode_t next = MODE_EV;
 
-    /* TODO PESSOA B: escrever as condicoes aqui. */
-    (void)in;
+    /* EV -> REGENB */
+    if ((in->speed >  SPEED_REGEN) &&
+        (in->P_dem <= PDEM_REGEN)) {
+        next = MODE_REGENB;
+    }
+    /* EV -> START */
+    else if ((in->speed > SPEED_EV_MAX) ||
+             (in->P_dem >= PDEM_HYB_IN) ||
+             (in->SOC   <  SOC_EV_OUT)) {
+        next = MODE_START;
+    }
+    /* EV -> STANDSTILL */
+    else if ((in->speed <= SPEED_STOP)     &&
+             (in->P_dem <= PDEM_STOP_HIGH) &&
+             (in->P_dem >= PDEM_STOP_LOW)) {
+        next = MODE_STANDSTILL;
+    }
+    else {
+        /* stays in EV */
+    }
 
     return next;
 }
@@ -86,8 +133,26 @@ static Mode_t handle_regenb(const Inputs_t *in)
 {
     Mode_t next = MODE_REGENB;
 
-    /* TODO PESSOA C: escrever as condicoes aqui. */
-    (void)in;
+    /* REGENB -> START */
+    if (((in->speed > SPEED_EV_MAX) && (in->P_dem >= PDEM_STOP_LOW)) ||
+        (in->P_dem >= PDEM_HYB_IN) ||
+        (in->SOC < SOC_EV_OUT)) {
+        next = MODE_START;
+    }
+    /* REGENB -> STANDSTILL */
+    else if (in->speed <= SPEED_STOP) {
+        next = MODE_STANDSTILL;
+    }
+    /* REGENB -> EV */
+    else if ((in->P_dem >= PDEM_STOP_LOW) &&
+             (in->speed > SPEED_STOP) &&
+             (in->speed <= SPEED_EV_MAX) &&
+             (in->SOC > SOC_EV_IN)) {
+        next = MODE_EV;
+    }
+    else {
+        /* permanece em REGENB */
+    }
 
     return next;
 }
@@ -125,7 +190,7 @@ static Mode_t motion_ice_common_exit(const Inputs_t *in, Mode_t current_in_block
     return next;
 }
 
-/* [TODO PESSOA D]
+/* [PESSOA D]
  * Reset comum de ICE/HYBRID para START quando o motor desliga.
  * Este teste entra antes das trocas internas ICE <-> HYBRID. */
 static Mode_t internal_motion_ice_reset(const Inputs_t *in, Mode_t current_in_block)

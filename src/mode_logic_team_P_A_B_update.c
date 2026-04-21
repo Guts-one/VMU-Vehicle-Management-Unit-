@@ -133,8 +133,26 @@ static Mode_t handle_regenb(const Inputs_t *in)
 {
     Mode_t next = MODE_REGENB;
 
-    /* TODO PESSOA C: escrever as condicoes aqui. */
-    (void)in;
+    /* REGENB -> START */
+    if (((in->speed > SPEED_EV_MAX) && (in->P_dem >= PDEM_STOP_LOW)) ||
+        (in->P_dem >= PDEM_HYB_IN) ||
+        (in->SOC < SOC_EV_OUT)) {
+        next = MODE_START;
+    }
+    /* REGENB -> STANDSTILL */
+    else if (in->speed <= SPEED_STOP) {
+        next = MODE_STANDSTILL;
+    }
+    /* REGENB -> EV */
+    else if ((in->P_dem >= PDEM_STOP_LOW) &&
+             (in->speed > SPEED_STOP) &&
+             (in->speed <= SPEED_EV_MAX) &&
+             (in->SOC > SOC_EV_IN)) {
+        next = MODE_EV;
+    }
+    else {
+        /* permanece em REGENB */
+    }
 
     return next;
 }
