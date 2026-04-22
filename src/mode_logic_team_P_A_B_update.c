@@ -45,12 +45,10 @@
  *
  * Priority: EV before START (EV mode is the main target).
  *
- * Hotfix applied:
- *   - Removed the P_dem > PDEM_REGEN guard from STANDSTILL -> EV
- *     (overly restrictive for some edge cases in the model).
- *   - SOC comparison now uses >= to match the updated model spec.
- *   - START branch uses strict < on SOC so both branches stay
- *     mutually exclusive at the SOC_EV_IN boundary.
+ * Implementacao alinhada ao modelo:
+ *   - STANDSTILL -> EV exige tambem P_dem > PDEM_REGEN.
+ *   - SOC usa >= na entrada de EV e < na saida para START,
+ *     mantendo exclusividade no limiar SOC_EV_IN.
  */
 static Mode_t handle_standstill(const Inputs_t *in)
 {
@@ -59,7 +57,8 @@ static Mode_t handle_standstill(const Inputs_t *in)
     /* STANDSTILL -> EV */
     if ((in->speed >  SPEED_STOP)   &&
         (in->speed <= SPEED_EV_MAX) &&
-        (in->SOC   >= SOC_EV_IN)) {
+        (in->SOC   >= SOC_EV_IN)    &&
+        (in->P_dem >  PDEM_REGEN)) {
         next = MODE_EV;
     }
     /* STANDSTILL -> START */
@@ -90,10 +89,9 @@ static Mode_t handle_standstill(const Inputs_t *in)
  *   EV exit uses SOC_EV_OUT (0.35) here. The gap between the
  *   two thresholds is what prevents chattering in and out of EV.
  *
- * Hotfix applied:
- *   - EV -> STANDSTILL: P_dem band is now inclusive on both sides
- *     (<= PDEM_STOP_HIGH and >= PDEM_STOP_LOW) to match the
- *     updated model. The other two transitions are unchanged.
+ * Implementacao alinhada ao modelo:
+ *   - EV -> STANDSTILL usa banda neutra estrita
+ *     (P_dem < PDEM_STOP_HIGH e P_dem > PDEM_STOP_LOW).
  */
 static Mode_t handle_ev(const Inputs_t *in)
 {
@@ -112,8 +110,8 @@ static Mode_t handle_ev(const Inputs_t *in)
     }
     /* EV -> STANDSTILL */
     else if ((in->speed <= SPEED_STOP)     &&
-             (in->P_dem <= PDEM_STOP_HIGH) &&
-             (in->P_dem >= PDEM_STOP_LOW)) {
+             (in->P_dem <  PDEM_STOP_HIGH) &&
+             (in->P_dem >  PDEM_STOP_LOW)) {
         next = MODE_STANDSTILL;
     }
     else {
@@ -197,15 +195,11 @@ static Mode_t internal_motion_ice_reset(const Inputs_t *in, Mode_t current_in_bl
 {
     Mode_t next = current_in_block;
 
-    /* TODO PESSOA D: preencher o reset aqui.
-     * Exemplo:
-     *   if (in->wEng <= ENG_OFF) {
-     *       next = MODE_START;
-     *   } else {
-     *       // permanece no estado atual
-     *   }
-     */
-    (void)in;
+    if (in->wEng <= ENG_OFF) {
+        next = MODE_START;
+    } else {
+        /* permanece no estado atual */
+    }
 
     return next;
 }
@@ -222,19 +216,21 @@ static Mode_t handle_start(const Inputs_t *in)
     next = motion_ice_common_exit(in, MODE_START);
 
     if (next == MODE_START) {
-        /* [TODO PESSOA D] transicoes internas:
-         *   START -> HYBRID quando:
-         *     wEng > ENG_ON, SOC >= SOC_MID e
-         *     (speed > SPEED_EV_MAX || P_dem >= PDEM_HYB_MID)
-         *
-         *   START -> ICE quando:
-         *     wEng > ENG_ON e
-         *     (SOC < SOC_MID ||
-         *      (speed <= SPEED_EV_MAX && P_dem < PDEM_HYB_MID))
-         *
-         * Manter o formato if / else if / else para ficar alinhado
-         * com a prioridade do modelo e com a observacao da MISRA 15.7.
-         */
+        if ((in->wEng > ENG_ON)        &&
+            (in->SOC  >= SOC_MID)      &&
+            ((in->speed > SPEED_EV_MAX) ||
+             (in->P_dem >= PDEM_HYB_MID))) {
+            next = MODE_HYBRID;
+        }
+        else if ((in->wEng > ENG_ON) &&
+                 ((in->SOC < SOC_MID) ||
+                  ((in->speed <= SPEED_EV_MAX) &&
+                   (in->P_dem < PDEM_HYB_MID)))) {
+            next = MODE_ICE;
+        }
+        else {
+            /* permanece em START */
+        }
     } else {
         /* ja saiu do bloco */
     }
