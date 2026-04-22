@@ -190,18 +190,22 @@ static Mode_t motion_ice_common_exit(const Inputs_t *in, Mode_t current_in_block
     return next;
 }
 
-/* [PESSOA D]
+/* [TODO PESSOA D]
  * Reset comum de ICE/HYBRID para START quando o motor desliga.
  * Este teste entra antes das trocas internas ICE <-> HYBRID. */
 static Mode_t internal_motion_ice_reset(const Inputs_t *in, Mode_t current_in_block)
 {
     Mode_t next = current_in_block;
 
-    if (in->wEng <= ENG_OFF) {
-        next = MODE_START;
-    } else {
-        /* permanece no estado atual */
-    }
+    /* TODO PESSOA D: preencher o reset aqui.
+     * Exemplo:
+     *   if (in->wEng <= ENG_OFF) {
+     *       next = MODE_START;
+     *   } else {
+     *       // permanece no estado atual
+     *   }
+     */
+    (void)in;
 
     return next;
 }
@@ -218,19 +222,19 @@ static Mode_t handle_start(const Inputs_t *in)
     next = motion_ice_common_exit(in, MODE_START);
 
     if (next == MODE_START) {
-        if ((in->wEng > ENG_ON) &&
-            (in->SOC >= SOC_MID) &&
-            ((in->speed > SPEED_EV_MAX) ||
-             (in->P_dem >= PDEM_HYB_MID))) {
-            next = MODE_HYBRID;
-        } else if ((in->wEng > ENG_ON) &&
-                   ((in->SOC < SOC_MID) ||
-                    ((in->speed <= SPEED_EV_MAX) &&
-                     (in->P_dem < PDEM_HYB_MID)))) {
-            next = MODE_ICE;
-        } else {
-            /* permanece em START */
-        }
+        /* [TODO PESSOA D] transicoes internas:
+         *   START -> HYBRID quando:
+         *     wEng > ENG_ON, SOC >= SOC_MID e
+         *     (speed > SPEED_EV_MAX || P_dem >= PDEM_HYB_MID)
+         *
+         *   START -> ICE quando:
+         *     wEng > ENG_ON e
+         *     (SOC < SOC_MID ||
+         *      (speed <= SPEED_EV_MAX && P_dem < PDEM_HYB_MID))
+         *
+         * Manter o formato if / else if / else para ficar alinhado
+         * com a prioridade do modelo e com a observacao da MISRA 15.7.
+         */
     } else {
         /* ja saiu do bloco */
     }
