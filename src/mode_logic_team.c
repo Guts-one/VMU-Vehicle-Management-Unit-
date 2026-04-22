@@ -61,17 +61,29 @@ static Mode_t handle_standstill(const Inputs_t *in)
 }
 
 /* [PESSOA B] EV
- * Transicoes esperadas:
- *   - EV -> STANDSTILL
- *   - EV -> REGENB
- *   - EV -> START
+ * Transicoes esperadas (em ordem de prioridade):
+ *   1. EV -> REGENB    speed > SPEED_REGEN && P_dem <= PDEM_REGEN
+ *   2. EV -> START     speed > SPEED_EV_MAX || P_dem >= PDEM_HYB_IN || SOC < SOC_EV_OUT
+ *   3. EV -> STANDSTILL speed <= SPEED_STOP && P_dem < PDEM_STOP_HIGH && P_dem > PDEM_STOP_LOW
  */
 static Mode_t handle_ev(const Inputs_t *in)
 {
     Mode_t next = MODE_EV;
 
-    /* TODO PESSOA B: escrever as condicoes aqui. */
-    (void)in;
+    if ((in->speed > SPEED_REGEN) &&
+        (in->P_dem <= PDEM_REGEN)) {
+        next = MODE_REGENB;
+    } else if ((in->speed > SPEED_EV_MAX) ||
+               (in->P_dem >= PDEM_HYB_IN) ||
+               (in->SOC < SOC_EV_OUT)) {
+        next = MODE_START;
+    } else if ((in->speed <= SPEED_STOP) &&
+               (in->P_dem < PDEM_STOP_HIGH) &&
+               (in->P_dem > PDEM_STOP_LOW)) {
+        next = MODE_STANDSTILL;
+    } else {
+        /* permanece em EV */
+    }
 
     return next;
 }
