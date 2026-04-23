@@ -177,11 +177,11 @@ static Mode_t motion_ice_common_exit(const Inputs_t *in, Mode_t current_in_block
                (in->P_dem >= PDEM_STOP_LOW) &&
                (in->speed > SPEED_STOP) &&
                (in->speed <= SPEED_EV_MAX) &&
-               (in->SOC > SOC_EV_IN)) {
+               (in->SOC >= SOC_EV_IN)) {
         next = MODE_EV;
     } else if ((in->speed <= SPEED_STOP) &&
-               (in->P_dem < PDEM_STOP_HIGH) &&
-               (in->P_dem > PDEM_STOP_LOW)) {
+               (in->P_dem <= PDEM_STOP_HIGH) &&
+               (in->P_dem >= PDEM_STOP_LOW)) {
         next = MODE_STANDSTILL;
     } else {
         /* continua no bloco interno atual */
