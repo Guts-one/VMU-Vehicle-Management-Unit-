@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulação da Mode Logic</title>
+  <title>Simulação da Mode Logic.C</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -371,6 +371,15 @@
               <strong id="batteryState">Estável</strong>
             </div>
           </div>
+
+          <div class="pill" style="margin-top:12px;">
+            <strong>Fase do ciclo automático</strong>
+            <span id="phaseLabel">Aguardando comando</span>
+            <div id="powerFlow" class="phase-text mono">Sistema parado / pronto para iniciar.</div>
+            <div class="progress">
+              <div id="progressBar" class="progress-bar"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -447,15 +456,6 @@
           <div class="pill"><strong>Gen_Enable</strong><span id="genEnable">0</span></div>
           <div class="pill"><strong>ICE_Enable</strong><span id="iceEnable">0</span></div>
           <div class="pill"><strong>Passos</strong><span id="stepCount">0</span></div>
-        </div>
-
-        <div class="pill" style="margin-top:12px;">
-          <strong>Fase do ciclo automático</strong>
-          <span id="phaseLabel">Aguardando comando</span>
-          <div id="powerFlow" class="phase-text mono">Sistema parado / pronto para iniciar.</div>
-          <div class="progress">
-            <div id="progressBar" class="progress-bar"></div>
-          </div>
         </div>
 
         <h3 style="margin-top:16px;">Limiares do modelo</h3>
