@@ -1,0 +1,9 @@
+*.html
+*.gcov
+*.gcda
+*.gcno
+*.info
+coverage_html/
+test_runner
+*.exe
+Unity/
