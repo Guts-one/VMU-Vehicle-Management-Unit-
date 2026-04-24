@@ -980,7 +980,220 @@ void test_Output_default_branch(void)
 }
 
 /* =========================================================================== */
-/* 12. End-to-end scenario: cold start to cruise                                 */
+/* 12. Coverage for handle_ev – stepping from EV mode                            */
+/* =========================================================================== */
+
+void test_handle_ev_coverage_base(void)
+{
+    /* Transition to EV first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_EV, step(&g_state, &in));
+    
+    /* Now step from EV mode with inputs that keep it in EV */
+    in = make_inputs(SPD_EV, SOC_HIGH, PDEM_NORMAL, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_EV, step(&g_state, &in));
+}
+
+void test_handle_ev_to_regenb(void)
+{
+    /* Transition to EV first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_EV, step(&g_state, &in));
+    
+    /* Step from EV to REGENB */
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_REGENB, step(&g_state, &in));
+}
+
+void test_handle_ev_to_standstill(void)
+{
+    /* Transition to EV first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_EV, step(&g_state, &in));
+    
+    /* Step from EV to STANDSTILL */
+    in = make_inputs(SPD_STOP_IN, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_STANDSTILL, step(&g_state, &in));
+}
+
+/* =========================================================================== */
+/* 13. Coverage for handle_regenb – stepping from REGENB mode                   */
+/* =========================================================================== */
+
+void test_handle_regenb_coverage_base(void)
+{
+    /* Transition to REGENB first via EV */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> EV */
+    
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_REGENB, step(&g_state, &in));  /* -> REGENB */
+    
+    /* Now step from REGENB mode with inputs that keep it in REGENB */
+    in = make_inputs(SPD_ABOVE_EV, SOC_HIGH, -5.0f, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_REGENB, step(&g_state, &in));
+}
+
+void test_handle_regenb_to_ev(void)
+{
+    /* Transition to REGENB first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> EV */
+    
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> REGENB */
+    
+    /* Step from REGENB to EV */
+    in = make_inputs(SPD_EV, SOC_HIGH, PDEM_NORMAL, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_EV, step(&g_state, &in));
+}
+
+void test_handle_regenb_to_standstill(void)
+{
+    /* Transition to REGENB first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> EV */
+    
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> REGENB */
+    
+    /* Step from REGENB to STANDSTILL */
+    in = make_inputs(SPD_STOP_IN, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_STANDSTILL, step(&g_state, &in));
+}
+
+/* =========================================================================== */
+/* 14. Coverage for handle_standstill – stepping from STANDSTILL mode           */
+/* =========================================================================== */
+
+void test_handle_standstill_coverage_base(void)
+{
+    /* Transition to STANDSTILL */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> EV */
+    
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> REGENB */
+    
+    in = make_inputs(SPD_STOP_IN, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> STANDSTILL */
+    
+    /* Now step from STANDSTILL mode with inputs that keep it in STANDSTILL */
+    in = make_inputs(SPD_ZERO, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_STANDSTILL, step(&g_state, &in));
+}
+
+void test_handle_standstill_to_ev(void)
+{
+    /* Get to STANDSTILL first */
+    Inputs_t in = make_inputs(SPD_ZERO, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* Stay in STANDSTILL */
+    
+    /* Step from STANDSTILL to EV */
+    in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_EV, step(&g_state, &in));
+}
+
+void test_handle_standstill_to_start(void)
+{
+    /* Get to STANDSTILL first */
+    Inputs_t in = make_inputs(SPD_ZERO, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* Stay in STANDSTILL */
+    
+    /* Step from STANDSTILL to START */
+    in = make_inputs(SPD_ABOVE_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    TEST_ASSERT_EQUAL(MODE_START, step(&g_state, &in));
+}
+
+/* =========================================================================== */
+/* 15. Coverage for uncovered motion_ice_common_exit paths                      */
+/* =========================================================================== */
+
+void test_motion_ice_common_exit_to_regenb_from_hybrid(void)
+{
+    /* Get to HYBRID mode first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_HYB_IN_VAL, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> START */
+    
+    in = make_inputs(SPD_EV, SOC_HIGH, PDEM_MID_HIGH, WENG_ON_VAL);
+    step(&g_state, &in);  /* -> START->ICE or HYBRID depending on conditions */
+    
+    /* Force to HYBRID to test the common_exit REGENB path */
+    force_mode(&g_state, MODE_HYBRID);
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_ON_VAL);
+    TEST_ASSERT_EQUAL(MODE_REGENB, step(&g_state, &in));
+}
+
+void test_motion_ice_common_exit_to_standstill_from_start(void)
+{
+    /* Get to START mode first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_HYB_IN_VAL, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> START */
+    
+    /* From START, transition to STANDSTILL via common_exit */
+    in = make_inputs(SPD_STOP_IN, SOC_HIGH, PDEM_COAST, WENG_ON_VAL);
+    TEST_ASSERT_EQUAL(MODE_STANDSTILL, step(&g_state, &in));
+}
+
+/* =========================================================================== */
+/* 16. Coverage for uncovered branches in handle_ice and handle_hybrid          */
+/* =========================================================================== */
+
+void test_handle_ice_to_hybrid_ice_branch(void)
+{
+    /* Get ICE where P_dem >= PDEM_HYB_MID and SOC >= SOC_MID to trigger HYBRID */
+    force_mode(&g_state, MODE_ICE);
+    Inputs_t in = make_inputs(SPD_EV, SOC_MID_HIGH, PDEM_MID_HIGH, WENG_ON_VAL);
+    TEST_ASSERT_EQUAL(MODE_HYBRID, step(&g_state, &in));
+}
+
+void test_handle_hybrid_ice_via_soc(void)
+{
+    /* Get HYBRID where SOC < SOC_LOW to trigger ICE */
+    force_mode(&g_state, MODE_HYBRID);
+    Inputs_t in = make_inputs(SPD_EV, SOC_LOW_VAL, PDEM_MID_HIGH, WENG_ON_VAL);
+    TEST_ASSERT_EQUAL(MODE_ICE, step(&g_state, &in));
+}
+
+/* =========================================================================== */
+/* 17. Coverage for uncovered output cases                                      */
+/* =========================================================================== */
+
+void test_output_standstill_via_regenb(void)
+{
+    /* Navigate to REGENB first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> EV */
+    
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> REGENB */
+    
+    /* Transition to STANDSTILL and verify outputs */
+    in = make_inputs(SPD_STOP_IN, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> STANDSTILL */
+    
+    TEST_ASSERT_EQUAL(0U, g_out.Mot_Enable);
+    TEST_ASSERT_EQUAL(0U, g_out.Gen_Enable);
+    TEST_ASSERT_EQUAL(0U, g_out.ICE_Enable);
+}
+
+void test_output_regenb_via_ev(void)
+{
+    /* Navigate to EV first */
+    Inputs_t in = make_inputs(SPD_EV, SOC_HIGH, PDEM_COAST, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> EV */
+    
+    /* Transition to REGENB and verify outputs */
+    in = make_inputs(SPD_REGEN_IN, SOC_HIGH, PDEM_REGEN_TRIG, WENG_OFF_VAL);
+    step(&g_state, &in);  /* -> REGENB */
+    
+    TEST_ASSERT_EQUAL(1U, g_out.Mot_Enable);
+    TEST_ASSERT_EQUAL(0U, g_out.Gen_Enable);
+    TEST_ASSERT_EQUAL(0U, g_out.ICE_Enable);
+}
+
+/* =========================================================================== */
+/* 18. End-to-end scenario: cold start to cruise                                 */
 /* =========================================================================== */
 
 void test_E2E_cold_start_to_highway_cruise(void)
@@ -1130,6 +1343,33 @@ int main(void)
     RUN_TEST(test_Output_ICE);
     RUN_TEST(test_Output_HYBRID);
     RUN_TEST(test_Output_default_branch);
+
+    /* Coverage for handle_ev transitions */
+    RUN_TEST(test_handle_ev_coverage_base);
+    RUN_TEST(test_handle_ev_to_regenb);
+    RUN_TEST(test_handle_ev_to_standstill);
+
+    /* Coverage for handle_regenb transitions */
+    RUN_TEST(test_handle_regenb_coverage_base);
+    RUN_TEST(test_handle_regenb_to_ev);
+    RUN_TEST(test_handle_regenb_to_standstill);
+
+    /* Coverage for handle_standstill transitions */
+    RUN_TEST(test_handle_standstill_coverage_base);
+    RUN_TEST(test_handle_standstill_to_ev);
+    RUN_TEST(test_handle_standstill_to_start);
+
+    /* Coverage for motion_ice_common_exit paths */
+    RUN_TEST(test_motion_ice_common_exit_to_regenb_from_hybrid);
+    RUN_TEST(test_motion_ice_common_exit_to_standstill_from_start);
+
+    /* Coverage for uncovered branches in handle_ice and handle_hybrid */
+    RUN_TEST(test_handle_ice_to_hybrid_ice_branch);
+    RUN_TEST(test_handle_hybrid_ice_via_soc);
+
+    /* Coverage for output cases */
+    RUN_TEST(test_output_standstill_via_regenb);
+    RUN_TEST(test_output_regenb_via_ev);
 
     /* End-to-end */
     RUN_TEST(test_E2E_cold_start_to_highway_cruise);
