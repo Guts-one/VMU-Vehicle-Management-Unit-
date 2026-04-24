@@ -197,7 +197,7 @@ static Mode_t handle_hybrid(const Inputs_t *in)
 }
 
 
-static void map_outputs(Mode_t mode, Outputs_t *out)
+static void write_outputs(Mode_t mode, Outputs_t *out)
 {
     switch (mode) {
         case MODE_STANDSTILL:
@@ -256,41 +256,41 @@ void ModeLogic_Step(State_t *state, const Inputs_t *in, Outputs_t *out)
 {
     Mode_t next;
 
-    if ((state == NULL) || (in == NULL) || (out == NULL)) {
-        return;
+    if ((state != NULL) && (in != NULL) && (out != NULL)) {
+        next = state->current_mode;
+
+        switch (state->current_mode) {
+            case MODE_STANDSTILL:
+                next = handle_standstill(in);
+                break;
+
+            case MODE_EV:
+                next = handle_ev(in);
+                break;
+
+            case MODE_REGENB:
+                next = handle_regenb(in);
+                break;
+
+            case MODE_START:
+                next = handle_start(in);
+                break;
+
+            case MODE_ICE:
+                next = handle_ice(in);
+                break;
+
+            case MODE_HYBRID:
+                next = handle_hybrid(in);
+                break;
+
+            default:
+                next = MODE_STANDSTILL;
+                break;
+        }
+
+        state->current_mode = next;
+        write_outputs(next, out);
+    } else {
     }
-
-    next = state->current_mode;
-    switch (state->current_mode) {
-        case MODE_STANDSTILL:
-            next = handle_standstill(in);
-            break;
-
-        case MODE_EV:
-            next = handle_ev(in);
-            break;
-
-        case MODE_REGENB:
-            next = handle_regenb(in);
-            break;
-
-        case MODE_START:
-            next = handle_start(in);
-            break;
-
-        case MODE_ICE:
-            next = handle_ice(in);
-            break;
-
-        case MODE_HYBRID:
-            next = handle_hybrid(in);
-            break;
-
-        default:
-            next = MODE_STANDSTILL;
-            break;
-    }
-
-    state->current_mode = next;
-    map_outputs(state->current_mode, out);
 }
