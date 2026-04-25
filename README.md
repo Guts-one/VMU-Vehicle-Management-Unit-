@@ -139,6 +139,48 @@ gcc -Iinc -o test_mode_logic.exe src/mode_logic.c test/test_mode_logic.c
 .\test_mode_logic.exe
 ```
 
+### Interactive Web Simulator
+
+The repository includes a standalone web-based simulator for real-time visualization and testing of the mode logic:
+
+- `mode_logic_sim.html`
+
+#### Features
+
+The simulator replicates the `mode_logic.c` state machine logic in JavaScript and provides:
+
+- **Real-time Dashboard**: Live visualization of the current operating mode and powertrain component states
+- **Instrument Panel**: Animated gauges for speed (km/h) and engine speed (RPM)
+- **Telemetry Charts**: Real-time graphs tracking:
+  - Vehicle speed over time
+  - Power demand (P_dem)
+  - State of charge (SOC)
+  - Engine speed (wEng)
+  - Mode transitions history
+- **Manual Control**: Input fields to set custom values for all state variables
+- **Pre-configured Scenarios**: Quick-access buttons for common driving scenarios:
+  - EV mode scenario
+  - Regenerative braking scenario
+- **Automated Drive Cycles**:
+  - Short drive cycle simulation (acceleration, cruise, deceleration)
+  - One-minute continuous cycle for extended testing
+- **Simulation History**: Table view of all mode transitions with input/output values
+
+#### How to Use
+
+1. **Open the simulator**: Simply open `mode_logic_sim.html` in any modern web browser (Chrome, Firefox, Edge, Safari)
+2. **Initialize**: Click "Inicializar" to set the initial state (MODE_STANDSTILL)
+3. **Manual step**: Adjust input values and click "Step" to execute one state transition
+4. **Run scenarios**: Click on pre-configured scenario buttons to test specific conditions
+5. **Auto-simulation**: Use "Ciclo de Condução" or "Ciclo de 1 Minuto" for automated testing
+
+#### Technical Details
+
+- No external dependencies or build process required
+- Implements the same threshold constants and transition logic as `mode_logic.c`
+- Runs entirely client-side (no server needed)
+- Compatible with all major browsers
+
 ## Current Scope
 
 This repository currently serves as:
@@ -148,11 +190,92 @@ This repository currently serves as:
 - a workspace for evolving the team-oriented mode logic structure
 - a traceable reference for future integration and validation work
 
+## Code Quality & Standards
+
+### MISRA C 2012 Compliance
+
+This project follows **MISRA C 2012** coding standards to ensure reliability and safety.
+
+**Status:**
+- ✓ Minimum: 0 high-level violations
+- ✓ Desirable: 0 high + 0 medium violations
+- Goal: Zero violations
+
+**Key Guidelines:**
+- `const` for input parameters (Rule 8.13)
+- Unsigned integer suffixes (Rule 10.1)
+- Explicit type declarations (Rule 10)
+- Structured control flow (Rules 15, 16)
+- Static scope for internal functions (Rule 8.7)
+
+**Quick Start:**
+- See [MISRA_QUICKSTART.md](MISRA_QUICKSTART.md) for developer guidelines
+- See [MISRA_COMPLIANCE.md](MISRA_COMPLIANCE.md) for detailed rules and patterns
+
+**Automated Verification:**
+
+GitHub Actions runs MISRA C 2012 static analysis on every pull request using **cppcheck**.
+
+**Running Locally:**
+
+1. **Install cppcheck:**
+   ```bash
+   # Windows
+   winget install Cppcheck.Cppcheck
+
+   # macOS
+   brew install cppcheck
+
+   # Linux (Ubuntu/Debian)
+   sudo apt-get install cppcheck
+   ```
+
+2. **Run static analysis:**
+   ```bash
+   cppcheck --enable=all --suppress=missingIncludeSystem -Iinc src/ inc/ test/
+   ```
+
+3. **Build with strict warnings:**
+   ```bash
+   gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
+   ```
+
+4. **Run tests:**
+   ```bash
+   # Linux/macOS
+   ./test_mode_logic
+
+   # Windows
+   .\test_mode_logic.exe
+   ```
+
+**Complete Local Verification (All Steps):**
+```bash
+# 1. Static analysis
+cppcheck --enable=all --suppress=missingIncludeSystem -Iinc src/ inc/ test/
+
+# 2. Compile
+gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
+
+# 3. Test
+./test_mode_logic
+```
+
+### Continuous Integration
+
+GitHub Actions workflow (`.github/workflows/ci.yaml`):
+1. **Static Analysis** - Checks for MISRA C 2012 violations
+2. **Build and Test** - Compiles with strict flags and runs unit tests
+
+View results:
+- Pull requests show status under "Checks"
+- Download analysis reports from workflow artifacts
+
 ## Notes
 
 - `mode_logic.c` is the implementation currently covered by the test and CI pipeline.
 - `mode_logic_team.c` reflects the newer modular structure and transition split by responsibility.
-- `mode_logic_sim.html` is included as an additional project artifact for mode-logic visualization or demonstration.
+- `mode_logic_sim.html` provides an interactive web-based simulator for real-time visualization and testing (see [Interactive Web Simulator](#interactive-web-simulator) section for details).
 - The repository contains generated model artifacts under `Model/HEV_powersplit_adapted/slprj`, which are currently versioned in the branch structure.
 
 ## License

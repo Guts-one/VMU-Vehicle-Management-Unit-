@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Simulação da Mode Logic</title>
+  <title>Simulação da Mode Logic.C</title>
   <style>
     :root {
       --bg: #0f172a;
@@ -371,6 +371,15 @@
               <strong id="batteryState">Estável</strong>
             </div>
           </div>
+
+          <div class="pill" style="margin-top:12px;">
+            <strong>Fase do ciclo automático</strong>
+            <span id="phaseLabel">Aguardando comando</span>
+            <div id="powerFlow" class="phase-text mono">Sistema parado / pronto para iniciar.</div>
+            <div class="progress">
+              <div id="progressBar" class="progress-bar"></div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -449,26 +458,24 @@
           <div class="pill"><strong>Passos</strong><span id="stepCount">0</span></div>
         </div>
 
-        <div class="pill" style="margin-top:12px;">
-          <strong>Fase do ciclo automático</strong>
-          <span id="phaseLabel">Aguardando comando</span>
-          <div id="powerFlow" class="phase-text mono">Sistema parado / pronto para iniciar.</div>
-          <div class="progress">
-            <div id="progressBar" class="progress-bar"></div>
-          </div>
-        </div>
-
-        <h3 style="margin-top:16px;">Limites usados</h3>
+        <h3 style="margin-top:16px;">Limiares do modelo</h3>
         <ul class="list">
-          <li>`SPEED_STOP = 0.5`</li>
-          <li>`SPEED_REGEN = 5.0`</li>
-          <li>`SPEED_EV_MAX = 35.0`</li>
-          <li>`PDEM_REGEN = -5.0`</li>
-          <li>`PDEM_HYB_IN = 55.0`</li>
-          <li>`SOC_EV_IN = 0.37`</li>
-          <li>`SOC_EV_OUT = 0.35`</li>
-          <li>`SOC_LOW = 0.25`</li>
-          <li>`ENG_ON = 800`</li>
+          <li>`ENG_ON = 800.0` — partida do motor térmico</li>
+          <li>`ENG_OFF = 790.0` — desligamento do motor</li>
+          <li>`SPEED_STOP = 0.5` — parada / retorno para StandStill</li>
+          <li>`SPEED_REGEN = 5.0` — entrada/saída de RegenB</li>
+          <li>`SPEED_EV_MAX = 35.0` — limite superior da faixa EV</li>
+          <li>`PDEM_REGEN = -5.0` — limiar de frenagem regenerativa</li>
+          <li>`PDEM_STOP_LOW = -1.0` — faixa neutra inferior</li>
+          <li>`PDEM_STOP_HIGH = 1.0` — faixa neutra superior</li>
+          <li>`PDEM_HYB_IN = 50.0` — EV/RegenB para Motion_mode_ICE</li>
+          <li>`PDEM_HYB_OUT = 40.0` — Motion_mode_ICE para EV</li>
+          <li>`PDEM_HYB_MID = 15.0` — Start/ICE para Hybrid</li>
+          <li>`PDEM_HYB_LOW = 10.0` — Hybrid para ICE</li>
+          <li>`SOC_EV_IN = 0.37` — entrada/manutenção em EV</li>
+          <li>`SOC_EV_OUT = 0.35` — saída de EV para Motion_mode_ICE</li>
+          <li>`SOC_MID = 0.30` — divisão Hybrid × ICE</li>
+          <li>`SOC_LOW = 0.25` — queda de Hybrid para ICE</li>
         </ul>
       </section>
     </div>
@@ -509,10 +516,15 @@
     const PDEM_REGEN = -5.0;
     const PDEM_STOP_LOW = -1.0;
     const PDEM_STOP_HIGH = 1.0;
-    const PDEM_HYB_IN = 55.0;
+    const PDEM_HYB_IN = 50.0;
+    const PDEM_HYB_OUT = 40.0;
+    const PDEM_HYB_MID = 15.0;
+    const PDEM_HYB_LOW = 10.0;
     const SOC_EV_IN = 0.37;
     const SOC_EV_OUT = 0.35;
+    const SOC_MID = 0.30;
     const SOC_LOW = 0.25;
+    const ENG_OFF = 790.0;
 
     const MODE_NAMES = {
       [MODE_STANDSTILL]: 'MODE_STANDSTILL',
@@ -681,17 +693,17 @@
 
     function buildMinuteCycleSegments() {
       return [
-        { start: 0, end: 5, label: '0-5s | Saída suave em modo elétrico', from: { speed: 0, P_dem: 4, SOC: 0.62, wEng: 0 }, to: { speed: 30, P_dem: 20, SOC: 0.60, wEng: 0 } },
-        { start: 5, end: 10, label: '5-10s | Aceleração forte até 80 km/h', from: { speed: 30, P_dem: 20, SOC: 0.60, wEng: 0 }, to: { speed: 80, P_dem: 68, SOC: 0.56, wEng: 500 } },
-        { start: 10, end: 15, label: '10-15s | Subida final até 120 km/h', from: { speed: 80, P_dem: 60, SOC: 0.56, wEng: 500 }, to: { speed: 120, P_dem: 55, SOC: 0.52, wEng: 950 } },
-        { start: 15, end: 20, label: '15-20s | Desaceleração até 30 km/h', from: { speed: 120, P_dem: -4, SOC: 0.52, wEng: 950 }, to: { speed: 30, P_dem: -18, SOC: 0.55, wEng: 250 } },
-        { start: 20, end: 28, label: '20-28s | Nova aceleração até 100 km/h', from: { speed: 30, P_dem: 14, SOC: 0.55, wEng: 250 }, to: { speed: 100, P_dem: 58, SOC: 0.51, wEng: 820 } },
-        { start: 28, end: 33, label: '28-33s | Aumento até 120 km/h', from: { speed: 100, P_dem: 42, SOC: 0.51, wEng: 820 }, to: { speed: 120, P_dem: 52, SOC: 0.49, wEng: 1120 } },
-        { start: 33, end: 38, label: '33-38s | Redução suave até 60 km/h', from: { speed: 120, P_dem: -6, SOC: 0.49, wEng: 1120 }, to: { speed: 60, P_dem: -12, SOC: 0.51, wEng: 640 } },
-        { start: 38, end: 46, label: '38-46s | Retomada até 100 km/h', from: { speed: 60, P_dem: 20, SOC: 0.51, wEng: 640 }, to: { speed: 100, P_dem: 50, SOC: 0.48, wEng: 980 } },
-        { start: 46, end: 50, label: '46-50s | Pico rápido em 120 km/h', from: { speed: 100, P_dem: 44, SOC: 0.48, wEng: 980 }, to: { speed: 120, P_dem: 55, SOC: 0.46, wEng: 1250 } },
-        { start: 50, end: 55, label: '50-55s | Tráfego mais lento até 40 km/h', from: { speed: 120, P_dem: -5, SOC: 0.46, wEng: 1250 }, to: { speed: 40, P_dem: -14, SOC: 0.48, wEng: 350 } },
-        { start: 55, end: 60, label: '55-60s | Fechamento com retomada leve', from: { speed: 40, P_dem: 8, SOC: 0.48, wEng: 350 }, to: { speed: 70, P_dem: 30, SOC: 0.45, wEng: 900 } }
+        { start: 0, end: 5, label: '0-5s | Saída suave em modo elétrico', from: { speed: 0, P_dem: 4, SOC: 0.62, wEng: 0 }, to: { speed: 30, P_dem: 20, SOC: 0.60, wEng: 500 } },
+        { start: 5, end: 10, label: '5-10s | Aceleração forte até 80 km/h', from: { speed: 30, P_dem: 20, SOC: 0.60, wEng: 500 }, to: { speed: 80, P_dem: 68, SOC: 0.56, wEng: 2000 } },
+        { start: 10, end: 15, label: '10-15s | Subida final até 120 km/h', from: { speed: 80, P_dem: 60, SOC: 0.56, wEng: 2000 }, to: { speed: 120, P_dem: 55, SOC: 0.52, wEng: 3200 } },
+        { start: 15, end: 20, label: '15-20s | Desaceleração até 30 km/h', from: { speed: 120, P_dem: -4, SOC: 0.52, wEng: 3200 }, to: { speed: 30, P_dem: -18, SOC: 0.55, wEng: 1200 } },
+        { start: 20, end: 28, label: '20-28s | Nova aceleração até 100 km/h', from: { speed: 30, P_dem: 14, SOC: 0.55, wEng: 1200 }, to: { speed: 100, P_dem: 58, SOC: 0.51, wEng: 2800 } },
+        { start: 28, end: 33, label: '28-33s | Aumento até 120 km/h', from: { speed: 100, P_dem: 42, SOC: 0.51, wEng: 2800 }, to: { speed: 120, P_dem: 52, SOC: 0.49, wEng: 4200 } },
+        { start: 33, end: 38, label: '33-38s | Redução suave até 60 km/h', from: { speed: 120, P_dem: -6, SOC: 0.49, wEng: 4200 }, to: { speed: 60, P_dem: -12, SOC: 0.51, wEng: 2100 } },
+        { start: 38, end: 46, label: '38-46s | Retomada até 100 km/h', from: { speed: 60, P_dem: 20, SOC: 0.51, wEng: 2100 }, to: { speed: 100, P_dem: 50, SOC: 0.48, wEng: 3100 } },
+        { start: 46, end: 50, label: '46-50s | Pico rápido em 120 km/h', from: { speed: 100, P_dem: 44, SOC: 0.48, wEng: 3100 }, to: { speed: 120, P_dem: 55, SOC: 0.46, wEng: 4800 } },
+        { start: 50, end: 55, label: '50-55s | Tráfego mais lento até 40 km/h', from: { speed: 120, P_dem: -5, SOC: 0.46, wEng: 4800 }, to: { speed: 40, P_dem: -14, SOC: 0.48, wEng: 1500 } },
+        { start: 55, end: 60, label: '55-60s | Fechamento com retomada leve', from: { speed: 40, P_dem: 8, SOC: 0.48, wEng: 1500 }, to: { speed: 70, P_dem: 30, SOC: 0.45, wEng: 2600 } }
       ];
     }
 
@@ -748,8 +760,8 @@
 
       const { width, height } = ctx.canvas;
       const cx = width / 2;
-      const cy = height * 0.78;
-      const radius = Math.min(width * 0.36, height * 0.52);
+      const cy = height / 2;
+      const radius = Math.min(width * 0.32, height * 0.42);
       const startAngle = Math.PI * 0.75;
       const endAngle = Math.PI * 2.25;
 
@@ -770,8 +782,27 @@
         ctx.stroke();
       });
 
-      for (let i = 0; i <= 6; i += 1) {
-        const ratio = i / 6;
+      let tickValues = [];
+      if (unit === 'rpm') {
+        for (let i = 0; i <= max; i += 1000) {
+          if (i >= min) {
+            tickValues.push(i);
+          }
+        }
+      } else if (unit === 'km/h') {
+        for (let i = 0; i <= max; i += 20) {
+          if (i >= min) {
+            tickValues.push(i);
+          }
+        }
+      } else {
+        for (let i = 0; i <= 6; i += 1) {
+          tickValues.push(min + (i / 6) * (max - min));
+        }
+      }
+
+      tickValues.forEach((tickValue) => {
+        const ratio = (tickValue - min) / (max - min);
         const angle = startAngle + ratio * (endAngle - startAngle);
         const inner = radius - 18;
         const outer = radius + 2;
@@ -787,14 +818,13 @@
         ctx.lineTo(x2, y2);
         ctx.stroke();
 
-        const tickValue = min + ratio * (max - min);
         const tx = cx + Math.cos(angle) * (radius - 34);
         const ty = cy + Math.sin(angle) * (radius - 34);
         ctx.fillStyle = '#cbd5e1';
         ctx.font = '10px Arial';
         ctx.textAlign = 'center';
         ctx.fillText(`${Math.round(tickValue)}`, tx, ty + 3);
-      }
+      });
 
       const clamped = Math.max(min, Math.min(max, value));
       const valueAngle = startAngle + ((clamped - min) / (max - min)) * (endAngle - startAngle);
@@ -817,22 +847,22 @@
       ctx.fillStyle = '#e2e8f0';
       ctx.font = 'bold 13px Arial';
       ctx.textAlign = 'center';
-      ctx.fillText(label, cx, 22);
+      ctx.fillText(label, cx, cy - radius - 32);
       ctx.font = 'bold 18px Arial';
-      ctx.fillText(`${value.toFixed(unit === 'rpm' ? 0 : 1)} ${unit}`, cx, cy - 18);
+      ctx.fillText(`${value.toFixed(unit === 'rpm' ? 0 : 1)} ${unit}`, cx, cy + radius + 24);
     }
 
     function renderGauges(speedValue = sim.lastInput.speed || 0, rpmValue = sim.lastInput.wEng || 0) {
-      drawGauge('speedGauge', speedValue, 0, 120, 'Velocidade', 'km/h', [
-        { from: 0, to: 40, color: '#22c55e' },
-        { from: 40, to: 80, color: '#38bdf8' },
-        { from: 80, to: 120, color: '#f59e0b' }
+      drawGauge('speedGauge', speedValue, 0, 260, 'Velocidade', 'km/h', [
+        { from: 0, to: 80, color: '#22c55e' },
+        { from: 80, to: 180, color: '#38bdf8' },
+        { from: 180, to: 260, color: '#f59e0b' }
       ]);
 
-      drawGauge('rpmGauge', rpmValue, 0, 2500, 'Rotação', 'rpm', [
-        { from: 0, to: 1200, color: '#22c55e' },
-        { from: 1200, to: 1900, color: '#38bdf8' },
-        { from: 1900, to: 2500, color: '#ef4444' }
+      drawGauge('rpmGauge', rpmValue, 0, 7000, 'Rotação', 'rpm', [
+        { from: 0, to: 2000, color: '#22c55e' },
+        { from: 2000, to: 5500, color: '#38bdf8' },
+        { from: 5500, to: 7000, color: '#ef4444' }
       ]);
 
       document.getElementById('speedReadout').textContent = `${speedValue.toFixed(1)} km/h`;
@@ -1093,18 +1123,18 @@
 
     function buildDriveCycle() {
       return [
-        { label: 'Veículo parado / pronto para arrancar', speed: 0, P_dem: 0, SOC: 0.58, wEng: 0 },
-        { label: 'Saída suave em modo elétrico', speed: 8, P_dem: 10, SOC: 0.57, wEng: 0 },
-        { label: 'Aceleração elétrica no trânsito', speed: 18, P_dem: 18, SOC: 0.56, wEng: 0 },
-        { label: 'Cruzeiro urbano estável', speed: 28, P_dem: 12, SOC: 0.54, wEng: 0 },
-        { label: 'Alívio do acelerador', speed: 20, P_dem: 1, SOC: 0.54, wEng: 0 },
-        { label: 'Frenagem regenerativa', speed: 18, P_dem: -8, SOC: 0.55, wEng: 0 },
-        { label: 'Redução forte de velocidade', speed: 6, P_dem: -10, SOC: 0.56, wEng: 0 },
-        { label: 'Retomada após a frenagem', speed: 22, P_dem: 15, SOC: 0.55, wEng: 0 },
-        { label: 'Demanda alta / ultrapassagem', speed: 37, P_dem: 70, SOC: 0.52, wEng: 0 },
-        { label: 'Partida do motor térmico', speed: 42, P_dem: 68, SOC: 0.50, wEng: 900 },
-        { label: 'Cruzeiro híbrido em rodovia', speed: 50, P_dem: 45, SOC: 0.49, wEng: 1100 },
-        { label: 'Encerrando demonstração', speed: 48, P_dem: 20, SOC: 0.49, wEng: 950 }
+        { label: 'Veículo em ponto morto / pronto para arrancar', speed: 0, P_dem: 0, SOC: 0.58, wEng: 0 },
+        { label: 'Saída suave em modo elétrico', speed: 8, P_dem: 10, SOC: 0.57, wEng: 300 },
+        { label: 'Aceleração elétrica no trânsito', speed: 18, P_dem: 18, SOC: 0.56, wEng: 600 },
+        { label: 'Cruzeiro urbano estável', speed: 28, P_dem: 12, SOC: 0.54, wEng: 800 },
+        { label: 'Alívio do acelerador', speed: 20, P_dem: 1, SOC: 0.54, wEng: 700 },
+        { label: 'Frenagem regenerativa', speed: 18, P_dem: -8, SOC: 0.55, wEng: 400 },
+        { label: 'Redução forte de velocidade', speed: 6, P_dem: -10, SOC: 0.56, wEng: 100 },
+        { label: 'Retomada após a frenagem', speed: 22, P_dem: 15, SOC: 0.55, wEng: 1200 },
+        { label: 'Demanda alta / ultrapassagem', speed: 37, P_dem: 70, SOC: 0.52, wEng: 2500 },
+        { label: 'Partida do motor térmico', speed: 42, P_dem: 68, SOC: 0.50, wEng: 3500 },
+        { label: 'Cruzeiro híbrido em rodovia', speed: 50, P_dem: 45, SOC: 0.49, wEng: 4000 },
+        { label: 'Encerrando demonstração', speed: 48, P_dem: 20, SOC: 0.49, wEng: 2800 }
       ];
     }
 
@@ -1219,10 +1249,10 @@
     document.getElementById('driveCycleBtn').addEventListener('click', toggleDriveCycle);
     document.getElementById('minuteCycleBtn').addEventListener('click', toggleMinuteCycle);
     document.getElementById('evScenarioBtn').addEventListener('click', () => {
-      applyScenario({ speed: 20, P_dem: 0, SOC: 0.40, wEng: 0 }, 'Cenário EV');
+      applyScenario({ speed: 20, P_dem: 0, SOC: 0.40, wEng: 500 }, 'Cenário EV');
     });
     document.getElementById('regenScenarioBtn').addEventListener('click', () => {
-      applyScenario({ speed: 10, P_dem: -5.5, SOC: 0.40, wEng: 0 }, 'Cenário Regen');
+      applyScenario({ speed: 10, P_dem: -5.5, SOC: 0.40, wEng: 600 }, 'Cenário Regen');
     });
     document.getElementById('clearBtn').addEventListener('click', () => {
       stopDriveCycle(false);
