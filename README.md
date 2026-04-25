@@ -81,7 +81,7 @@ The repository ships a layered test infrastructure built on the **Unity** framew
 | Persona Danilo | `test/test_mcdc_danilo.c` | MC/DC + line coverage |
 | Persona Hugo | `test/test_mcdc_hugo.c`, `test/test_mode_logic_team_hugo.c` | MC/DC and team-level integration |
 | Persona Marinel | `test/test_mcdc_marinel.c` | MC/DC for Marinel's transitions |
-| Persona E (Gustavo) | `test/Person_E_Gustavo/` | Only Persona E requirements are covered, MC/DC suite with dedicated Makefile and coverage report |
+| Persona E (Gustavo) | `test/Person_E_Gustavo/` | Only Persona E requirements are covered + MC/DC suite with dedicated Makefile and coverage report |
 | Shared requirements | `test/shared_tests/` | Cross-cutting tests covering SwHLR01/02/10, SysHLR01/02/03, NfHLR02/04 |
 | Baseline | `test/test_mode_logic.c`, `test/test_mode_logic_team_update.c` | Smoke tests for the baseline implementation |
 
