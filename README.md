@@ -139,6 +139,48 @@ gcc -Iinc -o test_mode_logic.exe src/mode_logic.c test/test_mode_logic.c
 .\test_mode_logic.exe
 ```
 
+### Interactive Web Simulator
+
+The repository includes a standalone web-based simulator for real-time visualization and testing of the mode logic:
+
+- `mode_logic_sim.html`
+
+#### Features
+
+The simulator replicates the `mode_logic.c` state machine logic in JavaScript and provides:
+
+- **Real-time Dashboard**: Live visualization of the current operating mode and powertrain component states
+- **Instrument Panel**: Animated gauges for speed (km/h) and engine speed (RPM)
+- **Telemetry Charts**: Real-time graphs tracking:
+  - Vehicle speed over time
+  - Power demand (P_dem)
+  - State of charge (SOC)
+  - Engine speed (wEng)
+  - Mode transitions history
+- **Manual Control**: Input fields to set custom values for all state variables
+- **Pre-configured Scenarios**: Quick-access buttons for common driving scenarios:
+  - EV mode scenario
+  - Regenerative braking scenario
+- **Automated Drive Cycles**:
+  - Short drive cycle simulation (acceleration, cruise, deceleration)
+  - One-minute continuous cycle for extended testing
+- **Simulation History**: Table view of all mode transitions with input/output values
+
+#### How to Use
+
+1. **Open the simulator**: Simply open `mode_logic_sim.html` in any modern web browser (Chrome, Firefox, Edge, Safari)
+2. **Initialize**: Click "Inicializar" to set the initial state (MODE_STANDSTILL)
+3. **Manual step**: Adjust input values and click "Step" to execute one state transition
+4. **Run scenarios**: Click on pre-configured scenario buttons to test specific conditions
+5. **Auto-simulation**: Use "Ciclo de Condução" or "Ciclo de 1 Minuto" for automated testing
+
+#### Technical Details
+
+- No external dependencies or build process required
+- Implements the same threshold constants and transition logic as `mode_logic.c`
+- Runs entirely client-side (no server needed)
+- Compatible with all major browsers
+
 ## Current Scope
 
 This repository currently serves as:
@@ -233,7 +275,7 @@ View results:
 
 - `mode_logic.c` is the implementation currently covered by the test and CI pipeline.
 - `mode_logic_team.c` reflects the newer modular structure and transition split by responsibility.
-- `mode_logic_sim.html` is included as an additional project artifact for mode-logic visualization or demonstration.
+- `mode_logic_sim.html` provides an interactive web-based simulator for real-time visualization and testing (see [Interactive Web Simulator](#interactive-web-simulator) section for details).
 - The repository contains generated model artifacts under `Model/HEV_powersplit_adapted/slprj`, which are currently versioned in the branch structure.
 
 ## License
