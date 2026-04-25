@@ -1,118 +1,107 @@
-# VMU - Vehicle Management Unit
+# VMU — Vehicle Management Unit
 
 ## Overview
 
-This repository contains the current VMU project baseline for a power-split hybrid electric vehicle (HEV).
+This repository hosts the VMU (Vehicle Management Unit) baseline for a power-split hybrid electric vehicle (HEV).
+It brings together the system reference model, a manual C implementation of the supervisory mode logic, the requirements/transition documentation, an interactive web simulator, and a complete test and CI infrastructure aligned with **MISRA C 2012**.
 
-It combines:
-
-- an adapted Simulink model used as the system reference
-- a manual C implementation of the VMU mode logic
-- transition documentation for the state machine
-- unit tests and CI validation for the C baseline
-
-The VMU supervisory logic is responsible for selecting operating modes such as `STANDSTILL`, `EV`, `REGENB`, `START`, `ICE`, and `HYBRID` based on driver power demand, vehicle speed, battery state of charge, and engine speed.
+The VMU supervisory logic selects operating modes — `STANDSTILL`, `EV`, `REGENB`, `START`, `ICE`, `HYBRID` — based on driver power demand, vehicle speed, battery state of charge, and engine speed.
 
 ## Repository Structure
 
 ```text
 .
-|-- .github/
-|   `-- workflows/
-|       `-- ci.yaml
-|-- inc/
-|   |-- mode_logic.h
-|   `-- mode_logic_team.h
-|-- Model/
-|   `-- HEV_powersplit_adapted/
-|       |-- HEV_powersplit_adapted.slx
-|       |-- README.md
-|       |-- Overview/
-|       |-- Scripts_Data/
-|       |-- Images/
-|       |-- Workflows/
-|       `-- slprj/
-|-- src/
-|   |-- mode_logic.c
-|   |-- mode_logic_team.c
-|   `-- transicoes_estados_mode_logic.md
-|-- test/
-|   `-- test_mode_logic.c
-|-- mode_logic_sim.html
-`-- README.md
+├── .github/workflows/
+│   └── ci.yaml                      # Build, unit tests, and MISRA static analysis
+├── Model/
+│   └── HEV_powersplit_adapted/      # Adapted Simulink reference model
+├── inc/
+│   ├── mode_logic.h                 # Original API (kept for reference/headers)
+│   └── mode_logic_team.h            # Modular team-oriented API (current baseline)
+├── src/
+│   ├── mode_logic_team.c            # C implementation of the supervisory logic
+│   └── transicoes_estados_mode_logic.md
+├── test/
+│   ├── Person_E_Gustavo/            # Person E test suite + Makefile + coverage tooling
+│   ├── shared_tests/                # Cross-cutting requirement tests
+│   ├── test_mcdc_bruna.c            # Persona-specific MC/DC suites
+│   ├── test_mcdc_danilo.c
+│   ├── test_mcdc_hugo.c
+│   ├── test_mcdc_marinel.c
+│   ├── test_mode_logic.c
+│   ├── test_mode_logic_team_hugo.c
+│   └── test_mode_logic_team_update.c
+├── doc/
+│   ├── Requisitos_preview.pdf
+│   ├── Tests_verification.xlsx
+│   ├── Tests_verification_Person_E_and_shared_tests.xlsx
+│   └── mapeamento_transicoes_secao4_por_responsavel.md
+├── mode_logic_sim.html              # Interactive web simulator
+├── misra.py                         # MISRA C 2012 verification script
+├── MISRA_COMPLIANCE.md              # Detailed MISRA rules and patterns
+├── MISRA_QUICKSTART.md              # Developer quick-start for MISRA
+├── UnityExecution.md                # Unity build/coverage instructions
+└── README.md
 ```
 
 ## Main Components
 
-### Simulink Model
+### Simulink Reference Model
 
-The adapted hybrid vehicle model is located in:
-
-- `Model/HEV_powersplit_adapted/HEV_powersplit_adapted.slx`
-
-This folder also includes:
-
-- overview material for model navigation
-- scripts and data files used by the model
-- image assets and workflow support files
-- generated Simulink artifacts currently versioned with the project
+Located in `Model/HEV_powersplit_adapted/`. It contains the supervisory model that the C baseline mirrors, along with overview material, scripts, image assets, and workflow support files.
 
 ### C Mode Logic Baseline
 
-The reference(Initial) C implementation is located in:
-
-- `src/mode_logic.c`
-- `inc/mode_logic.h`
-
-This implementation defines:
-
-- mode enumeration and I/O structures
-- threshold constants for transitions
-- step-based state machine behavior
-- output enable mapping for motor, generator, and ICE
-
-### Team-Oriented Mode Logic Structure + adaptation for improved simulink model - issue: #36
-
-A modular team-oriented version is also included in:
+The current C implementation lives in:
 
 - `src/mode_logic_team.c`
 - `inc/mode_logic_team.h`
 
-This version restructures the mode logic into smaller handlers per state and is aligned with a more traceable and MISRA-oriented coding style. It also centralizes output mapping to avoid one-step output delay.
+The implementation provides:
 
-Important:
-
-- `src/mode_logic_team.c` is currently a development-oriented structure
-- some transitions are still marked with `TODO` comments for task ownership and completion
+- mode enumeration and I/O structures
+- calibratable threshold constants for transitions (aligned with the Simulink model)
+- per-state handlers structured for traceability
+- centralized output mapping for motor, generator, and ICE enables (no one-step delay)
+- MISRA-oriented coding style: `const` inputs, explicit `uint8_t` booleans, structured control flow
 
 ### Transition Documentation
 
-The transition mapping between the Simulink model and the C implementation is documented in:
+- `src/transicoes_estados_mode_logic.md` — state names, threshold mapping, transition priorities, and expected behavior per mode.
+- `doc/mapeamento_transicoes_secao4_por_responsavel.md` — Section 4 transitions mapped per responsible team member.
+- `doc/Requisitos_preview.pdf` — requirements preview.
 
-- `src/transicoes_estados_mode_logic.md`
+### Test Suite
 
-This document summarizes:
+The repository ships a layered test infrastructure built on the **Unity** framework with **MC/DC** and line-coverage reporting via `gcov`/`lcov`.
 
-- state names in model and code
-- threshold mapping
-- transition priorities
-- expected behavior for each mode
+| Suite | File / Directory | Scope |
+|---|---|---|
+| Persona Bruna | `test/test_mcdc_bruna.c` | MC/DC + line coverage |
+| Persona Danilo | `test/test_mcdc_danilo.c` | MC/DC + line coverage |
+| Persona Hugo | `test/test_mcdc_hugo.c`, `test/test_mode_logic_team_hugo.c` | MC/DC and team-level integration |
+| Persona Marinel | `test/test_mcdc_marinel.c` | MC/DC for Marinel's transitions |
+| Persona E (Gustavo) | `test/Person_E_Gustavo/` | Only Persona E requirements are covered, MC/DC suite with dedicated Makefile and coverage report |
+| Shared requirements | `test/shared_tests/` | Cross-cutting tests covering SwHLR01/02/10, SysHLR01/02/03, NfHLR02/04 |
+| Baseline | `test/test_mode_logic.c`, `test/test_mode_logic_team_update.c` | Smoke tests for the baseline implementation |
 
-### Tests
+Test verification spreadsheets are kept under `doc/` for traceability between requirements and tests.
 
-Unit tests for the C baseline are available in:
+### Interactive Web Simulator
 
-- `test/test_mode_logic.c`
+`mode_logic_sim.html` is a standalone, dependency-free simulator that mirrors the C state machine in JavaScript.
 
-The current automated test flow validates the baseline implementation in `src/mode_logic.c`.
+Features:
 
-### CI
+- Real-time dashboard for the active mode and powertrain enables
+- Animated gauges for vehicle speed (km/h) and engine speed (RPM)
+- Telemetry charts: vehicle speed, power demand (`P_dem`), state of charge (`SOC`), engine speed (`wEng`), and mode-transition history
+- Manual control panel for all state variables
+- Pre-configured scenarios (EV, regenerative braking)
+- Automated drive cycles (short cycle and 1-minute continuous cycle) with automatic phase display
+- Transition history table with input/output values
 
-GitHub Actions CI is configured in:
-
-- `.github/workflows/ci.yaml`
-
-The workflow builds and runs the C unit tests automatically on pull requests.
+Open it in any modern browser — no build step or server required.
 
 ## Getting Started
 
@@ -121,165 +110,99 @@ The workflow builds and runs the C unit tests automatically on pull requests.
 1. Open MATLAB.
 2. Navigate to `Model/HEV_powersplit_adapted`.
 3. Open `HEV_powersplit_adapted.slx`.
-4. Review the local `README.md` inside the model folder for model-specific notes.
+4. See the local `README.md` inside the model folder for model-specific notes.
 
 ### Build and Run the C Tests
 
-From the repository root:
+The full build and coverage flow is documented in [UnityExecution.md](UnityExecution.md). A typical persona suite is built with the Unity sources placed at `unity/src/` and a one-line GCC invocation:
 
 ```bash
-gcc -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
-./test_mode_logic
+gcc -std=c99 -Wall -Wextra \
+    --coverage -fprofile-arcs -ftest-coverage -O0 \
+    -Iinc -Iunity/src \
+    src/mode_logic_team.c \
+    unity/src/unity.c \
+    test/<TEST_FILE>.c \
+    -o test_runner
+./test_runner
 ```
 
-On Windows with MinGW or equivalent:
+The Person E and shared-tests suites ship with their own Makefiles:
 
-```powershell
-gcc -Iinc -o test_mode_logic.exe src/mode_logic.c test/test_mode_logic.c
-.\test_mode_logic.exe
+```bash
+# Person E
+make -C test/Person_E_Gustavo            # build and run
+make -C test/Person_E_Gustavo coverage   # build, run, and emit lcov/HTML report
+
+# Shared (cross-cutting) tests
+make -C test/shared_tests
 ```
 
-### Interactive Web Simulator
-
-The repository includes a standalone web-based simulator for real-time visualization and testing of the mode logic:
-
-- `mode_logic_sim.html`
-
-#### Features
-
-The simulator replicates the `mode_logic.c` state machine logic in JavaScript and provides:
-
-- **Real-time Dashboard**: Live visualization of the current operating mode and powertrain component states
-- **Instrument Panel**: Animated gauges for speed (km/h) and engine speed (RPM)
-- **Telemetry Charts**: Real-time graphs tracking:
-  - Vehicle speed over time
-  - Power demand (P_dem)
-  - State of charge (SOC)
-  - Engine speed (wEng)
-  - Mode transitions history
-- **Manual Control**: Input fields to set custom values for all state variables
-- **Pre-configured Scenarios**: Quick-access buttons for common driving scenarios:
-  - EV mode scenario
-  - Regenerative braking scenario
-- **Automated Drive Cycles**:
-  - Short drive cycle simulation (acceleration, cruise, deceleration)
-  - One-minute continuous cycle for extended testing
-- **Simulation History**: Table view of all mode transitions with input/output values
-
-#### How to Use
-
-1. **Open the simulator**: Simply open `mode_logic_sim.html` in any modern web browser (Chrome, Firefox, Edge, Safari)
-2. **Initialize**: Click "Inicializar" to set the initial state (MODE_STANDSTILL)
-3. **Manual step**: Adjust input values and click "Step" to execute one state transition
-4. **Run scenarios**: Click on pre-configured scenario buttons to test specific conditions
-5. **Auto-simulation**: Use "Ciclo de Condução" or "Ciclo de 1 Minuto" for automated testing
-
-#### Technical Details
-
-- No external dependencies or build process required
-- Implements the same threshold constants and transition logic as `mode_logic.c`
-- Runs entirely client-side (no server needed)
-- Compatible with all major browsers
-
-## Current Scope
-
-This repository currently serves as:
-
-- the VMU model baseline in Simulink
-- the baseline C implementation for mode transitions
-- a workspace for evolving the team-oriented mode logic structure
-- a traceable reference for future integration and validation work
+Coverage reports (when `lcov`/`genhtml` are available) are generated under each suite's `build_cov/html/` directory.
 
 ## Code Quality & Standards
 
 ### MISRA C 2012 Compliance
 
-This project follows **MISRA C 2012** coding standards to ensure reliability and safety.
+The project follows **MISRA C 2012** to ensure reliability and safety, with automated verification on every pull request.
 
 **Status:**
-- ✓ Minimum: 0 high-level violations
-- ✓ Desirable: 0 high + 0 medium violations
-- Goal: Zero violations
+- Minimum: 0 high-severity violations
+- Desirable: 0 high + 0 medium violations
+- Goal: zero violations
 
-**Key Guidelines:**
+**Key guidelines applied:**
 - `const` for input parameters (Rule 8.13)
-- Unsigned integer suffixes (Rule 10.1)
+- Unsigned-integer suffixes (Rule 10.1)
 - Explicit type declarations (Rule 10)
-- Structured control flow (Rules 15, 16)
+- Structured control flow (Rules 15, 16) — including the Rule 15.5 single-exit pattern
 - Static scope for internal functions (Rule 8.7)
 
-**Quick Start:**
-- See [MISRA_QUICKSTART.md](MISRA_QUICKSTART.md) for developer guidelines
-- See [MISRA_COMPLIANCE.md](MISRA_COMPLIANCE.md) for detailed rules and patterns
+**References:**
+- [MISRA_QUICKSTART.md](MISRA_QUICKSTART.md) — developer quick-start
+- [MISRA_COMPLIANCE.md](MISRA_COMPLIANCE.md) — detailed rules and patterns
 
-**Automated Verification:**
+**Local verification:**
 
-GitHub Actions runs MISRA C 2012 static analysis on every pull request using **cppcheck**.
-
-**Running Locally:**
-
-1. **Install cppcheck:**
+1. Install `cppcheck`:
    ```bash
    # Windows
    winget install Cppcheck.Cppcheck
-
    # macOS
    brew install cppcheck
-
    # Linux (Ubuntu/Debian)
    sudo apt-get install cppcheck
    ```
 
-2. **Run static analysis:**
+2. Run static analysis with the project's MISRA addon:
    ```bash
-   cppcheck --enable=all --suppress=missingIncludeSystem -Iinc src/ inc/ test/
+   cppcheck --enable=all --addon=misra --suppress=missingIncludeSystem -Iinc src/ inc/ test/
+   # or use the bundled script
+   python misra.py
    ```
 
-3. **Build with strict warnings:**
+3. Build with strict warnings:
    ```bash
-   gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
+   gcc -Wall -Wextra -Werror -Iinc -o test_runner src/mode_logic_team.c test/<TEST_FILE>.c
    ```
-
-4. **Run tests:**
-   ```bash
-   # Linux/macOS
-   ./test_mode_logic
-
-   # Windows
-   .\test_mode_logic.exe
-   ```
-
-**Complete Local Verification (All Steps):**
-```bash
-# 1. Static analysis
-cppcheck --enable=all --suppress=missingIncludeSystem -Iinc src/ inc/ test/
-
-# 2. Compile
-gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
-
-# 3. Test
-./test_mode_logic
-```
 
 ### Continuous Integration
 
-GitHub Actions workflow (`.github/workflows/ci.yaml`):
-1. **Static Analysis** - Checks for MISRA C 2012 violations
-2. **Build and Test** - Compiles with strict flags and runs unit tests
+GitHub Actions (`.github/workflows/ci.yaml`) runs on every pull request and performs:
 
-View results:
-- Pull requests show status under "Checks"
-- Download analysis reports from workflow artifacts
+1. **Static analysis** — MISRA C 2012 verification via `cppcheck` + `misra.py`.
+2. **Build and test** — compilation with strict flags and execution of the Unity suites.
+
+PR checks and downloadable analysis reports are available under the workflow run's "Checks" / "Artifacts" tabs.
 
 ## Notes
 
-- `mode_logic.c` is the implementation currently covered by the test and CI pipeline.
-- `mode_logic_team.c` reflects the newer modular structure and transition split by responsibility.
-- `mode_logic_sim.html` provides an interactive web-based simulator for real-time visualization and testing (see [Interactive Web Simulator](#interactive-web-simulator) section for details).
-- The repository contains generated model artifacts under `Model/HEV_powersplit_adapted/slprj`, which are currently versioned in the branch structure.
+- `src/mode_logic_team.c` is the single C implementation maintained on `main`. The legacy `src/mode_logic.c` was removed during the development cycle; its header remains for compatibility and reference.
+- `mode_logic_sim.html` is kept in sync with the thresholds and transition logic of `mode_logic_team.c`.
+- Generated Simulink artifacts under `Model/HEV_powersplit_adapted/slprj/` are intentionally not versioned; they are produced locally on first build.
 
 ## License
 
-Model content derived from MathWorks example assets includes its own license file under:
+Model content derived from MathWorks example assets is governed by its own license file under:
 
 - `Model/HEV_powersplit_adapted/LICENSE.md`
