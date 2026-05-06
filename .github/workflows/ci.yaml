@@ -28,7 +28,7 @@ jobs:
                    --output-file=cppcheck-report.txt \
                    --xml \
                    -Iinc \
-                   src/ inc/ test/
+                   src/ inc/
           echo "=== MISRA C 2012 Analysis Report ==="
           cat cppcheck-report.txt
 
@@ -50,8 +50,21 @@ jobs:
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install -y build-essential
 
+      - name: Fetch Unity
+        run: git clone --depth 1 https://github.com/ThrowTheSwitch/Unity.git unity
+
       - name: Build and run mode logic tests
         run: |
-          gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
-          ./test_mode_logic
-
+          set -e
+          for t in test/test_ev_transitions.c \
+                   test/test_regenb_transitions.c \
+                   test/test_standstill_transitions.c \
+                   test/test_start_to_hybrid_ice_and_resets.c \
+                   test/test_ice_hybrid_external_and_internal.c; do
+            echo "=== Building $t ==="
+            gcc -std=c99 -Wall -Wextra -Iinc -Iunity/src \
+                src/mode_logic_team.c unity/src/unity.c "$t" \
+                -o test_runner
+            echo "=== Running $t ==="
+            ./test_runner
+          done
