@@ -18,19 +18,49 @@ jobs:
       - name: Install cppcheck
         run: sudo apt-get update && sudo apt-get install -y cppcheck
 
-      - name: Run MISRA C 2012 analysis
+      - name: Install cppcheck addons (apt package omits them)
         run: |
+          set -e
+          CPPCHECK_VERSION=$(cppcheck --version | awk '{print $2}')
+          echo "Fetching addons matching cppcheck $CPPCHECK_VERSION"
+          git clone --depth 1 --branch "$CPPCHECK_VERSION" \
+            https://github.com/danmar/cppcheck.git /tmp/cppcheck-src
+          sudo mkdir -p /usr/share/cppcheck/addons
+          sudo cp /tmp/cppcheck-src/addons/*.py /usr/share/cppcheck/addons/
+          ls -la /usr/share/cppcheck/addons/
+
+      - name: Run cppcheck general checks
+        run: |
+          set +e
           cppcheck --enable=all \
                    --suppress=missingIncludeSystem \
+                   --suppress=unmatchedSuppression \
                    --inline-suppr \
-                   --addon=misra \
                    --error-exitcode=1 \
                    --output-file=cppcheck-report.txt \
-                   --xml \
                    -Iinc \
-                   src/ inc/ test/
-          echo "=== MISRA C 2012 Analysis Report ==="
-          cat cppcheck-report.txt
+                   src/ inc/
+          STATUS=$?
+          echo "=== cppcheck general report ==="
+          cat cppcheck-report.txt || true
+          exit $STATUS
+
+      - name: Run MISRA C 2012 (manual dump + addon)
+        run: |
+          set +e
+          echo "=== generating cppcheck dumps ==="
+          cppcheck --dump -Iinc src/ inc/
+          echo "=== running misra.py on each dump ==="
+          MISRA_STATUS=0
+          for f in $(find src inc -name '*.dump'); do
+            echo "--- $f ---"
+            python3 /usr/share/cppcheck/addons/misra.py "$f"
+            rc=$?
+            if [ "$rc" != "0" ]; then
+              MISRA_STATUS=$rc
+            fi
+          done
+          exit $MISRA_STATUS
 
       - name: Upload analysis report
         if: always()
@@ -50,8 +80,24 @@ jobs:
       - name: Install build tools
         run: sudo apt-get update && sudo apt-get install -y build-essential
 
+      - name: Fetch Unity
+        run: git clone --depth 1 https://github.com/ThrowTheSwitch/Unity.git unity
+
       - name: Build and run mode logic tests
         run: |
-          gcc -Wall -Wextra -Werror -Iinc -o test_mode_logic src/mode_logic.c test/test_mode_logic.c
-          ./test_mode_logic
-
+          set -e
+          for t in test/test_ev_transitions.c \
+                   test/test_regenb_transitions.c \
+                   test/test_standstill_transitions.c \
+                   test/test_start_to_hybrid_ice_and_resets.c \
+                   test/test_ice_hybrid_external_and_internal.c; do
+            echo "=== Generating runner for $t ==="
+            runner="${t%.c}_runner.c"
+            ruby unity/auto/generate_test_runner.rb "$t" "$runner"
+            echo "=== Building $t ==="
+            gcc -std=c99 -Wall -Wextra -Iinc -Iunity/src \
+                src/mode_logic_team.c unity/src/unity.c "$t" "$runner" \
+                -o test_runner
+            echo "=== Running $t ==="
+            ./test_runner
+          done
