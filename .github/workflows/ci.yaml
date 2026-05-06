@@ -29,21 +29,37 @@ jobs:
           sudo cp /tmp/cppcheck-src/addons/*.py /usr/share/cppcheck/addons/
           ls -la /usr/share/cppcheck/addons/
 
-      - name: Run MISRA C 2012 analysis
+      - name: Run cppcheck general checks
         run: |
           set +e
           cppcheck --enable=all \
                    --suppress=missingIncludeSystem \
                    --inline-suppr \
-                   --addon=misra \
                    --error-exitcode=1 \
                    --output-file=cppcheck-report.txt \
                    -Iinc \
                    src/ inc/
           STATUS=$?
-          echo "=== MISRA C 2012 Analysis Report ==="
+          echo "=== cppcheck general report ==="
           cat cppcheck-report.txt || true
           exit $STATUS
+
+      - name: Run MISRA C 2012 (manual dump + addon)
+        run: |
+          set +e
+          echo "=== generating cppcheck dumps ==="
+          cppcheck --dump -Iinc src/ inc/
+          echo "=== running misra.py on each dump ==="
+          MISRA_STATUS=0
+          for f in $(find src inc -name '*.dump'); do
+            echo "--- $f ---"
+            python3 /usr/share/cppcheck/addons/misra.py "$f"
+            rc=$?
+            if [ "$rc" != "0" ]; then
+              MISRA_STATUS=$rc
+            fi
+          done
+          exit $MISRA_STATUS
 
       - name: Upload analysis report
         if: always()
