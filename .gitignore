@@ -6,4 +6,6 @@
 coverage_html/
 test_runner
 *.exe
-Unity/
+# Keep generated test reports versioned
+!Test report/
+!Test report/**
