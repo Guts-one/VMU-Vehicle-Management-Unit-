@@ -155,6 +155,15 @@ Two self-contained scripts at the repo root generate the runners, compile every 
 
 The supported order is **(1) `run_branch_coverage.sh` → (2) `run_mcdc_native.sh` → (3) regenerate the static checker report if needed**. See `Test report/README.md` for the prerequisite toolchain (gcc-11, gcc-14 from `ppa:ubuntu-toolchain-r/test`, `lcov`, `libclang-19-dev`, `mcdc-checker`) and the static-check command.
 
+ **Note for Windows users:** These scripts are intended to run in Linux/WSL and must use Unix line endings (`LF`). If a script was saved with Windows line endings (`CRLF`), Bash may fail with errors such as `/usr/bin/env: 'bash\r': No such file or directory`. Convert the scripts back to `LF` before running them.
+
+ Example:
+
+```bash
+sed -i 's/\r$//' run_branch_coverage.sh run_mcdc_native.sh
+chmod +x run_mcdc_native.sh
+```
+
 #### Alternative — run a single suite manually
 
 Useful when you want to run just one transition suite (e.g. while debugging a specific test) or when the GCC 14 / lcov toolchain required by the scripts isn't available. This path skips the consolidated coverage report:
