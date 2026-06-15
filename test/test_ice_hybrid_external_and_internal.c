@@ -29,10 +29,12 @@ static Mode_t step_from(Mode_t start_mode, Inputs_t in) {
 
 static Inputs_t make_inputs(float speed, float P_dem, float SOC, float wEng) {
     Inputs_t in;
-    in.speed = speed;
-    in.P_dem = P_dem;
-    in.SOC   = SOC;
-    in.wEng  = wEng;
+    in.speed_dkph = (uint16_t)((speed * 10.0f) + 0.5f);
+    in.p_dem_dkw = (P_dem >= 0.0f) ?
+        (int16_t)((P_dem * 10.0f) + 0.5f) :
+        (int16_t)((P_dem * 10.0f) - 0.5f);
+    in.soc_q10000 = (uint16_t)((SOC * 10000.0f) + 0.5f);
+    in.weng_rpm = (uint16_t)(wEng + 0.5f);
     return in;
 }
 

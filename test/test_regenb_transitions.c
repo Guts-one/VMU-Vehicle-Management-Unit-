@@ -14,10 +14,12 @@ static Mode_t run_from_regenb(const Inputs_t *in, Outputs_t *out) {
 
 static Inputs_t make_inputs(float speed, float p_dem, float soc, float w_eng) {
     Inputs_t in;
-    in.speed = speed; 
-    in.P_dem = p_dem; 
-    in.SOC = soc; 
-    in.wEng = w_eng;
+    in.speed_dkph = (uint16_t)((speed * 10.0f) + 0.5f);
+    in.p_dem_dkw = (p_dem >= 0.0f) ?
+        (int16_t)((p_dem * 10.0f) + 0.5f) :
+        (int16_t)((p_dem * 10.0f) - 0.5f);
+    in.soc_q10000 = (uint16_t)((soc * 10000.0f) + 0.5f);
+    in.weng_rpm = (uint16_t)(w_eng + 0.5f);
     return in;
 }
 
