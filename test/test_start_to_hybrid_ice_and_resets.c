@@ -12,7 +12,14 @@
 static State_t g_st;
 static Outputs_t g_out;
 static Inputs_t make_in(float s, float soc, float p, float w) {
-    Inputs_t in; in.speed=s; in.SOC=soc; in.P_dem=p; in.wEng=w; return in;
+    Inputs_t in;
+    in.speed_dkph = (uint16_t)((s * 10.0f) + 0.5f);
+    in.p_dem_dkw = (p >= 0.0f) ?
+        (int16_t)((p * 10.0f) + 0.5f) :
+        (int16_t)((p * 10.0f) - 0.5f);
+    in.soc_q10000 = (uint16_t)((soc * 10000.0f) + 0.5f);
+    in.weng_rpm = (uint16_t)(w + 0.5f);
+    return in;
 }
 static void force_mode(Mode_t m) { g_st.current_mode = m; }
 static Mode_t do_step(Inputs_t *in) {
